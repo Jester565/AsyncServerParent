@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <boost/make_shared.hpp>
 #include <boost/shared_ptr.hpp>
 
 class OPacket;
@@ -37,6 +38,29 @@ public:
 	{
 		return data;
 	}
+	
+	template <typename T>
+	void setData(T begin, T end)
+	{
+		data = boost::make_shared <std::string>(begin, end);
+	}
+
+	uint32_t getDataSize()
+	{
+		if (data == nullptr)
+		{
+			return dataSize;
+		}
+		else
+		{
+			return data->size();
+		}
+	}
+
+	void setDataSize(uint32_t dataSize)
+	{
+		this->dataSize = dataSize;
+	}
 
 	friend std::ostream& operator << (std::ostream& oStream, IPacket& iPack)
 	{
@@ -56,6 +80,7 @@ public:
 	virtual ~IPacket();
 
 protected:
+	uint32_t dataSize;
 	IDType sentFromID;
 	char locKey[3];
 	bool serverRead;

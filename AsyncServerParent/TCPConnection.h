@@ -15,9 +15,6 @@ class HeaderManager;
 class TCPConnection : public boost::enable_shared_from_this<TCPConnection>
 {
 public:
-	static int ReceiveCount;
-	static int ReceiveBytes;
-	static int SentCount;
 
 	TCPConnection(Server* server, boost::asio::ip::tcp::socket* boundSocket);
 
@@ -49,9 +46,9 @@ public:
 		this->alive = false;
 	}
 
-	virtual void asyncReceiveHandler(const boost::system::error_code& error, unsigned int bytes);
+	void asyncReceiveHandler(const boost::system::error_code& error, unsigned int bytes);
 
-	virtual void asyncSendHandler(const boost::system::error_code& error, boost::shared_ptr<std::vector<unsigned char>> sendData);
+	void asyncSendHandler(const boost::system::error_code& error, boost::shared_ptr<std::vector<unsigned char>> sendData);
 
 	virtual ~TCPConnection();
 

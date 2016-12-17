@@ -16,8 +16,9 @@ ClientManager::ClientManager(Server* server)
 
 Client* ClientManager::addClient(boost::shared_ptr <TCPConnection> tcpConnection)
 {
-	Client* client = nullptr;
-	IDType id = aquireNextID();
+	Client* client = nullptr; 
+	IDType id = aquireNextID(); 
+	std::cout << id << std::endl;
 	if (id < MAX_CLIENTS)
 	{
 		client = server->createClient(tcpConnection, id);

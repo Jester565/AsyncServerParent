@@ -9,20 +9,18 @@
 #include <boost/asio.hpp>
 #include <iostream>
 
-int TCPConnection::ReceiveCount = 0;
-int TCPConnection::ReceiveBytes = 0;
-
-int TCPConnection::SentCount = 0;
-
 TCPConnection::TCPConnection(Server* server, boost::asio::ip::tcp::socket* boundSocket)
 	:server(server), socket(boundSocket), cID(cID), errorMode(DEFAULT_ERROR_MODE), receiveStorage(nullptr), alive(true), sending(false)
 {
+	boost::asio::ip::tcp::no_delay naglesOff(true);
+	socket->set_option(naglesOff);
 	hm = server->createHeaderManager();
 }
 
 void TCPConnection::start()
 {
 	read();
+	
 }
 
 void TCPConnection::read()
@@ -40,8 +38,6 @@ void TCPConnection::read()
 
 void TCPConnection::asyncReceiveHandler(const boost::system::error_code& error, unsigned int nBytes)
 {
-	ReceiveCount++;
-	ReceiveBytes += nBytes;
 	if (error)
 	{
 		if (error == boost::asio::error::connection_reset)
@@ -63,7 +59,7 @@ void TCPConnection::asyncReceiveHandler(const boost::system::error_code& error, 
 			return;
 		};
 	}
-	boost::shared_ptr<IPacket> iPack = hm->decryptHeader(receiveStorage, nBytes, cID);
+	boost::shared_ptr<IPacket> iPack = hm->decryptHeader(receiveStorage->data(), nBytes, cID);
 	if (iPack != nullptr)
 	{
 		server->getPacketManager()->process(iPack);
@@ -74,10 +70,6 @@ void TCPConnection::asyncReceiveHandler(const boost::system::error_code& error, 
 void TCPConnection::send(boost::shared_ptr<OPacket> oPack)
 {
 	boost::shared_ptr<std::vector <unsigned char>> sendData = hm->encryptHeader(oPack);
-	if (sendData->size() > MAX_DATA_SIZE)
-	{
-		std::cerr << "Data of " << oPack->getLocKey() << " had a size of " << sendData->size() << " exceeding the MAX_DATA_SIZE of " << MAX_DATA_SIZE << std::endl;
-	}
 	sendingMutex.lock();
 	if (!sending)
 	{
@@ -87,8 +79,8 @@ void TCPConnection::send(boost::shared_ptr<OPacket> oPack)
 	}
 	else
 	{
-		sendingMutex.unlock();
 		queueSendDataMutex.lock();
+		sendingMutex.unlock();
 		queueSendData.push(sendData);
 		queueSendDataMutex.unlock();
 	}
@@ -96,10 +88,6 @@ void TCPConnection::send(boost::shared_ptr<OPacket> oPack)
 
 void TCPConnection::send(boost::shared_ptr<std::vector<unsigned char>> sendData)
 {
-	if (sendData->size() > MAX_DATA_SIZE)
-	{
-		std::cerr << "Raw data had a size of " << sendData->size() << " exceeding the MAX_DATA_SIZE of " << MAX_DATA_SIZE << std::endl;
-	}
 	sendingMutex.lock();
 	if (!sending)
 	{
@@ -109,17 +97,15 @@ void TCPConnection::send(boost::shared_ptr<std::vector<unsigned char>> sendData)
 	}
 	else
 	{
-		sendingMutex.unlock();
 		queueSendDataMutex.lock();
+		sendingMutex.unlock();
 		queueSendData.push(sendData);
 		queueSendDataMutex.unlock();
 	}
-	//socket->async_write_some(boost::asio::buffer(*sendData), boost::bind(&TCPConnection::asyncSendHandler, shared_from_this(), boost::asio::placeholders::error, sendData));	//do not know if this is thread safe as of now consider using strands
 }
 
 void TCPConnection::asyncSendHandler(const boost::system::error_code& error, boost::shared_ptr<std::vector<unsigned char>> sendData)
 {
-	SentCount++;
 	sendingMutex.lock();
 	sending = false;
 	sendingMutex.unlock();

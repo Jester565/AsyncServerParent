@@ -23,7 +23,7 @@ public:
 	virtual Client* getClient(IDType id);
 
 	virtual Client* getClient(const std::string& ip, uint16_t port);
-
+	
 	virtual bool removeClient(IDType id);
 
 	std::map <IDType, Client*> getIDClientMap() const
@@ -57,12 +57,13 @@ public:
 		return errorMode;
 	}
 
+	boost::shared_mutex clientMapMutex;
+
 	virtual ~ClientManager();
 
 protected:
 
 	std::map <IDType, Client*> clients;
-	boost::shared_mutex clientMapMutex;
 	IDType aquireNextID();
 	Server* server;
 	int errorMode;
