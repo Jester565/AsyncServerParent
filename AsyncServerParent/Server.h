@@ -60,6 +60,9 @@ public:
 	{
 		return ipVersion;
 	}
+	virtual void shutdownIO();
+
+	virtual void destroyManagers();
 
 	virtual ~Server();
 

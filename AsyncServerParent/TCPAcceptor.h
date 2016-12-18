@@ -21,6 +21,8 @@ public:
 		this->errorMode = errorMode;
 	}
 
+	void close();
+
 	virtual ~TCPAcceptor();
 
 protected:
@@ -28,8 +30,8 @@ protected:
 	virtual void runAccept();
 
 	Server* server;
-	boost::asio::ip::tcp::socket* tempSocket;
-	boost::asio::ip::tcp::acceptor* acceptor;
+	boost::shared_ptr <boost::asio::ip::tcp::socket> tempSocket;
+	boost::shared_ptr <boost::asio::ip::tcp::acceptor> acceptor;
 	int errorMode;
 };
 

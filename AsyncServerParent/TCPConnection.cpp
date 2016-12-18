@@ -9,7 +9,7 @@
 #include <boost/asio.hpp>
 #include <iostream>
 
-TCPConnection::TCPConnection(Server* server, boost::asio::ip::tcp::socket* boundSocket)
+TCPConnection::TCPConnection(Server* server, boost::shared_ptr<boost::asio::ip::tcp::socket> boundSocket)
 	:server(server), socket(boundSocket), cID(cID), errorMode(DEFAULT_ERROR_MODE), receiveStorage(nullptr), alive(true), sending(false)
 {
 	boost::asio::ip::tcp::no_delay naglesOff(true);
@@ -20,7 +20,6 @@ TCPConnection::TCPConnection(Server* server, boost::asio::ip::tcp::socket* bound
 void TCPConnection::start()
 {
 	read();
-	
 }
 
 void TCPConnection::read()
@@ -58,6 +57,7 @@ void TCPConnection::asyncReceiveHandler(const boost::system::error_code& error, 
 			read();
 			return;
 		};
+		return;
 	}
 	boost::shared_ptr<IPacket> iPack = hm->decryptHeader(receiveStorage->data(), nBytes, cID);
 	if (iPack != nullptr)
@@ -126,6 +126,7 @@ void TCPConnection::asyncSendHandler(const boost::system::error_code& error, boo
 			return;
 			break;
 		};
+		return;
 	}
 	queueSendDataMutex.lock();
 	while (!queueSendData.empty())
@@ -138,27 +139,29 @@ void TCPConnection::asyncSendHandler(const boost::system::error_code& error, boo
 	queueSendDataMutex.unlock();
 }
 
+void TCPConnection::close()
+{
+		if (socket != nullptr) {
+				boost::system::error_code ec;
+				socket->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+				if (ec)
+				{
+						std::cerr << "Error when shutting down TCPConnection: " << ec.message() << std::endl;
+				}
+				socket->close();
+		}
+}
+
 TCPConnection::~TCPConnection()
 {
 	std::cout << "TCP CONNECTION DESTRUCTOR CALLED" << std::endl;
-	if (socket != nullptr)
-	{
-		boost::system::error_code ec;
-		socket->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
-		if (ec)
-		{
-			std::cerr << "Error when shutting down TCPConnection: " << ec.message() << std::endl;
-		}
-		socket->close();
-	}
 	if (hm != nullptr)
 	{
 		delete hm;
 		hm = nullptr;
 	}
-	if (socket != nullptr)
-	{
-		delete socket;
-		socket = nullptr;
+	if (receiveStorage != nullptr) {
+			delete receiveStorage;
+			receiveStorage = nullptr;
 	}
 }

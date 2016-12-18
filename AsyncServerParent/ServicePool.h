@@ -7,26 +7,36 @@
 class ServicePool
 {
 public:
-	ServicePool(int usedCores = 1);
+		ServicePool(int usedCores = 1);
 
-	void run();
+		virtual void run();
 	
-	boost::asio::io_service& getNextIOService()
-	{
-		if (serviceIter >= services.end())
+		boost::asio::io_service& getNextIOService()
 		{
-			serviceIter = services.begin();
+				if (serviceIter >= services.end())
+				{
+						serviceIter = services.begin();
+				}
+				return **(serviceIter++);
 		}
-		return **(serviceIter++);
-	}
 
-	~ServicePool();
+		bool isRunning();
+
+		void stop();
+
+		~ServicePool();
 
 protected:
-	typedef boost::shared_ptr<boost::asio::io_service> io_service_ptr;
-	typedef boost::shared_ptr<boost::asio::io_service::work> work_ptr;
-	std::vector <io_service_ptr> services;
-	std::vector <work_ptr> works;
-	std::vector <io_service_ptr>::iterator serviceIter;
+		typedef boost::shared_ptr<boost::asio::io_service> io_service_ptr;
+		void ioServiceRunFunc(io_service_ptr ioService);
+		std::vector <io_service_ptr> services;
+		std::vector <boost::thread> ioServiceRunners;
+		std::vector <io_service_ptr>::iterator serviceIter;
+		boost::mutex runningMutex;
+		boost::mutex runCountMutex;
+
+		bool running;
+		int runCount;
+		int numCores;
 };
 

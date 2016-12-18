@@ -152,6 +152,15 @@ void ClientManager::send(boost::shared_ptr<std::vector<unsigned char>> sendData,
 	client->getTCPConnection()->send(sendData);
 }
 
+void ClientManager::close()
+{
+		clientMapMutex.lock();
+		for (auto it = clients.begin(); it != clients.end(); it++) {
+				it->second->getTCPConnection()->close();
+		}
+		clientMapMutex.unlock();
+}
+
 void ClientManager::send(boost::shared_ptr<OPacket> oPack, Client* client)
 {
 	if (client == nullptr)

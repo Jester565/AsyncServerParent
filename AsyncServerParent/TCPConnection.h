@@ -16,7 +16,7 @@ class TCPConnection : public boost::enable_shared_from_this<TCPConnection>
 {
 public:
 
-	TCPConnection(Server* server, boost::asio::ip::tcp::socket* boundSocket);
+	TCPConnection(Server* server, boost::shared_ptr<boost::asio::ip::tcp::socket> boundSocket);
 
 	virtual void start();
 
@@ -31,7 +31,7 @@ public:
 		this->errorMode = mode;
 	}
 
-	boost::asio::ip::tcp::socket* getSocket()
+ boost::shared_ptr<boost::asio::ip::tcp::socket> getSocket()
 	{
 		return socket;
 	}
@@ -50,12 +50,14 @@ public:
 
 	void asyncSendHandler(const boost::system::error_code& error, boost::shared_ptr<std::vector<unsigned char>> sendData);
 
+	virtual void close();
+
 	virtual ~TCPConnection();
 
 protected:
 	std::queue <boost::shared_ptr<std::vector <unsigned char>>> queueSendData;
 	std::vector <unsigned char>* receiveStorage;
-	boost::asio::ip::tcp::socket* socket;
+	boost::shared_ptr<boost::asio::ip::tcp::socket> socket;
 	boost::mutex sendingMutex;
 	boost::mutex queueSendDataMutex;
 	bool sending;

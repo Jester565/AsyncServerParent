@@ -19,13 +19,13 @@ TCPAcceptor::TCPAcceptor(Server* server)
 
 void TCPAcceptor::runAccept()
 {
-	tempSocket = new boost::asio::ip::tcp::socket(server->getServicePool()->getNextIOService());
+	tempSocket = boost::make_shared<boost::asio::ip::tcp::socket>(server->getServicePool()->getNextIOService());
 	acceptor->async_accept(*tempSocket, boost::bind(&TCPAcceptor::asyncAcceptHandler, shared_from_this(), boost::asio::placeholders::error));
 }
 
 void TCPAcceptor::detach(uint16_t port)
 {
-	acceptor = new tcp::acceptor(server->getServicePool()->getNextIOService(), tcp::endpoint(server->getIPVersion(), port));
+	acceptor = boost::make_shared<tcp::acceptor>(server->getServicePool()->getNextIOService(), tcp::endpoint(server->getIPVersion(), port));
 	runAccept();
 }
 
@@ -47,6 +47,7 @@ void TCPAcceptor::asyncAcceptHandler(const boost::system::error_code& error)
 			runAccept();
 			return;
 		};
+		return;
 	}
 	boost::shared_ptr<TCPConnection> tcpConnection = boost::make_shared<TCPConnection>(server, tempSocket);
 	tcpConnection->start();
@@ -54,16 +55,21 @@ void TCPAcceptor::asyncAcceptHandler(const boost::system::error_code& error)
 	runAccept();
 }
 
+void TCPAcceptor::close()
+{
+		std::cout << "TCP Acceptor stopped" << std::endl;
+		if (acceptor != nullptr) {
+				acceptor->close();
+		}
+		if (tempSocket != nullptr) {
+				boost::system::error_code ec;
+				tempSocket->shutdown(tcp::socket::shutdown_both, ec);
+				std::cerr << ec.message() << std::endl;
+				tempSocket->close();
+		}
+}
+
 TCPAcceptor::~TCPAcceptor()
 {
-	if (acceptor != nullptr)
-	{
-		delete acceptor;
-		acceptor = nullptr;
-	}
-	if (tempSocket != nullptr)
-	{
-		delete tempSocket;
-		tempSocket = nullptr;
-	}
+		std::cout << "TCPAcceptor destructor called" << std::endl;
 }

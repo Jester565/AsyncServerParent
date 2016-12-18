@@ -47,6 +47,8 @@ public:
 
 	virtual void send(boost::shared_ptr<std::vector<unsigned char>> sendData, IDType sendToID);
 
+	virtual void close();
+
 	void setErrorMode(int mode)
 	{
 		errorMode = mode;

@@ -2,8 +2,9 @@
 #include <thread>
 
 ServicePool::ServicePool(int usedCores)
+		:running(false), runCount(0)
 {
-	int numCores = std::thread::hardware_concurrency();
+	numCores = std::thread::hardware_concurrency();
 	if (numCores == 0)
 	{
 		std::cerr << "Could not detect number of cores, assume 4" << std::endl;
@@ -17,26 +18,54 @@ ServicePool::ServicePool(int usedCores)
 	for (int i = 0; i < numCores; i++)
 	{
 		io_service_ptr ioService(new boost::asio::io_service());
-		work_ptr work(new boost::asio::io_service::work(*ioService));
 		services.push_back(ioService);
-		works.push_back(work);
 	}
 	serviceIter = services.begin();
 }
 
 void ServicePool::run()
 {
-	for (int i = 0; i < services.size(); i++)
-	{
-		boost::shared_ptr<boost::thread> thread(new boost::thread(boost::bind(&boost::asio::io_service::run, services.at(i))));
-		thread->detach();
-	}
+		running = true;
+		runCount = numCores;
+		for (int i = 0; i < numCores; i++)
+		{
+				ioServiceRunners.emplace_back(boost::bind(&ServicePool::ioServiceRunFunc, this, services.at(i)));
+				ioServiceRunners.at(i).detach();
+		}
+}
+
+bool ServicePool::isRunning()
+{
+		boost::mutex::scoped_lock lock(runCountMutex);
+		return runCount > 0;
+}
+
+void ServicePool::stop()
+{
+		runningMutex.lock();
+		running = false;
+		for (int i = 0; i < services.size(); i++) {
+				services.at(i)->stop();
+		}
+		runningMutex.unlock();
 }
 
 ServicePool::~ServicePool()
 {
-	for (int i = 0; i < services.size(); i++)
-	{
-		services.at(i)->stop();
-	}
+}
+
+void ServicePool::ioServiceRunFunc(io_service_ptr ioService)
+{
+		while (true) {
+				runningMutex.lock();
+				if (!running) {
+						runningMutex.unlock();
+						runCountMutex.lock();
+						runCount--;
+						runCountMutex.unlock();
+						return;
+				}
+				runningMutex.unlock();
+				ioService->run();
+		}
 }

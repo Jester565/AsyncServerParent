@@ -18,9 +18,9 @@ Server::Server(const boost::asio::ip::tcp& version)
 
 void Server::createManagers()
 {
-	servicePool = new ServicePool();
-	pm = new PacketManager(this);
-	cm = new ClientManager(this);
+		servicePool = new ServicePool();
+		pm = new PacketManager(this);
+		cm = new ClientManager(this);
 }
 
 void Server::run(uint16_t port)
@@ -52,22 +52,43 @@ Client * Server::createClient(boost::shared_ptr<TCPConnection> tcpConnection, ID
 	return new Client(tcpConnection, this, id);
 }
 
+void Server::shutdownIO()
+{
+		if (tcpAcceptor != nullptr) {
+				tcpAcceptor->close();
+		}
+		if (cm != nullptr) {
+				cm->close();
+		}
+}
+
+void Server::destroyManagers()
+{
+		tcpAcceptor = nullptr;
+		if (cm != nullptr)
+		{
+				delete cm;
+				cm = nullptr;
+		}
+		if (pm != nullptr)
+		{
+				delete pm;
+				pm = nullptr;
+		}
+}
+
 Server::~Server()
 {
-	if (cm != nullptr)
-	{
-		delete cm;
-		cm = nullptr;
-	}
-	if (pm != nullptr)
-	{
-		delete pm;
-		pm = nullptr;
-	}
-	if (servicePool != nullptr)
-	{
-		delete servicePool;
-		servicePool = nullptr;
-	}
-	google::protobuf::ShutdownProtobufLibrary();
+		shutdownIO();
+		servicePool->stop();
+		while (servicePool->isRunning()) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(60));
+		}
+		destroyManagers();
+		if (servicePool != nullptr)
+		{
+				delete servicePool;
+				servicePool = nullptr;
+		}
+		google::protobuf::ShutdownProtobufLibrary();
 }
