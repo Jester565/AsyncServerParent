@@ -12,9 +12,11 @@
 TCPConnection::TCPConnection(Server* server, boost::shared_ptr<boost::asio::ip::tcp::socket> boundSocket)
 	:server(server), socket(boundSocket), cID(cID), errorMode(DEFAULT_ERROR_MODE), receiveStorage(nullptr), alive(true), sending(false)
 {
-	boost::asio::ip::tcp::no_delay naglesOff(true);
-	socket->set_option(naglesOff);
-	hm = server->createHeaderManager();
+		if (socket != nullptr) {
+				boost::asio::ip::tcp::no_delay naglesOff(true);
+				socket->set_option(naglesOff);
+		}
+		hm = server->createHeaderManager();
 }
 
 void TCPConnection::start()
@@ -69,39 +71,39 @@ void TCPConnection::asyncReceiveHandler(const boost::system::error_code& error, 
 
 void TCPConnection::send(boost::shared_ptr<OPacket> oPack)
 {
-	boost::shared_ptr<std::vector <unsigned char>> sendData = hm->encryptHeader(oPack);
-	sendingMutex.lock();
-	if (!sending)
-	{
-		sending = true;
-		sendingMutex.unlock();
-		boost::asio::async_write(*socket, boost::asio::buffer(*sendData, sendData->size()), boost::bind(&TCPConnection::asyncSendHandler, shared_from_this(), boost::asio::placeholders::error, sendData));
-	}
-	else
-	{
-		queueSendDataMutex.lock();
-		sendingMutex.unlock();
-		queueSendData.push(sendData);
-		queueSendDataMutex.unlock();
-	}
+		boost::shared_ptr<std::vector <unsigned char>> sendData = hm->encryptHeader(oPack);
+		sendingMutex.lock();
+		if (!sending)
+		{
+				sending = true;
+				sendingMutex.unlock();
+				boost::asio::async_write(*socket, boost::asio::buffer(*sendData, sendData->size()), boost::bind(&TCPConnection::asyncSendHandler, shared_from_this(), boost::asio::placeholders::error, sendData));
+		}
+		else
+		{
+				queueSendDataMutex.lock();
+				sendingMutex.unlock();
+				queueSendData.push(sendData);
+				queueSendDataMutex.unlock();
+		}
 }
 
 void TCPConnection::send(boost::shared_ptr<std::vector<unsigned char>> sendData)
 {
-	sendingMutex.lock();
-	if (!sending)
-	{
-		sending = true;
-		sendingMutex.unlock();
-		boost::asio::async_write(*socket, boost::asio::buffer(*sendData, sendData->size()), boost::bind(&TCPConnection::asyncSendHandler, shared_from_this(), boost::asio::placeholders::error, sendData));
-	}
-	else
-	{
-		queueSendDataMutex.lock();
-		sendingMutex.unlock();
-		queueSendData.push(sendData);
-		queueSendDataMutex.unlock();
-	}
+		sendingMutex.lock();
+		if (!sending)
+		{
+				sending = true;
+				sendingMutex.unlock();
+				boost::asio::async_write(*socket, boost::asio::buffer(*sendData, sendData->size()), boost::bind(&TCPConnection::asyncSendHandler, shared_from_this(), boost::asio::placeholders::error, sendData));
+		}
+		else
+		{
+				queueSendDataMutex.lock();
+				sendingMutex.unlock();
+				queueSendData.push(sendData);
+				queueSendDataMutex.unlock();
+		}
 }
 
 void TCPConnection::asyncSendHandler(const boost::system::error_code& error, boost::shared_ptr<std::vector<unsigned char>> sendData)

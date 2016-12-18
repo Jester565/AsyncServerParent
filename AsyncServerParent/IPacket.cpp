@@ -24,5 +24,6 @@ std::vector<boost::shared_ptr<OPacket>>* IPacket::convertToOPacks(bool copyData)
 
 IPacket::~IPacket()
 {
-
+		data = nullptr;
+		std::cout << "dank memes" << std::endl;
 }
