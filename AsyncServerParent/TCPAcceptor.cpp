@@ -25,7 +25,7 @@ void TCPAcceptor::runAccept()
 
 void TCPAcceptor::detach(uint16_t port)
 {
-	acceptor = boost::make_shared<tcp::acceptor>(server->getServicePool()->getNextIOService(), tcp::endpoint(server->getIPVersion(), port));
+	acceptor = boost::make_shared<tcp::acceptor>(server->getServicePool()->getFirstIOService(), tcp::endpoint(server->getIPVersion(), port));
 	runAccept();
 }
 

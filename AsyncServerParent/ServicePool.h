@@ -20,6 +20,11 @@ public:
 				return **(serviceIter++);
 		}
 
+		boost::asio::io_service& getFirstIOService()
+		{
+				return *services.front();
+		}
+
 		bool isRunning();
 
 		void stop();
