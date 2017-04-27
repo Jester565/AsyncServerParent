@@ -1,4 +1,5 @@
 #include "ServicePool.h"
+#include "Logger.h"
 #include <thread>
 
 ServicePool::ServicePool(int usedCores)
@@ -7,7 +8,7 @@ ServicePool::ServicePool(int usedCores)
 	numCores = std::thread::hardware_concurrency();
 	if (numCores == 0)
 	{
-		std::cerr << "Could not detect number of cores, assume 4" << std::endl;
+		Logger::Log(LOG_LEVEL::Warning, "Could not detect number of cores, assume 4");
 		numCores = 4;
 	}
 	numCores -= usedCores;

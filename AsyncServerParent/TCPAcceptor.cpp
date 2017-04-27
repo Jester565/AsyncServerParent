@@ -3,11 +3,11 @@
 #include "ClientManager.h"
 #include "TCPConnection.h"
 #include "ServicePool.h"
+#include "Logger.h"
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/asio/placeholders.hpp>
-#include <iostream>
 
 using namespace boost::asio::ip;
 
@@ -31,10 +31,9 @@ void TCPAcceptor::detach(uint16_t port)
 
 void TCPAcceptor::asyncAcceptHandler(const boost::system::error_code& error)
 {
-	std::cout << "Accepted" << std::endl;
 	if (error)
 	{
-		std::cerr << "Error occured in TCPAcceptor: " << error.message() << std::endl;
+		Logger::Log(LOG_LEVEL::Error, "Error occured in TCPAcceptor: " + error.message());
 		switch (errorMode)
 		{
 		case THROW_ON_ERROR:
@@ -57,19 +56,21 @@ void TCPAcceptor::asyncAcceptHandler(const boost::system::error_code& error)
 
 void TCPAcceptor::close()
 {
-		std::cout << "TCP Acceptor stopped" << std::endl;
+	Logger::Log(LOG_LEVEL::Error, "Closing Acceptor");
 		if (acceptor != nullptr) {
 				acceptor->close();
 		}
 		if (tempSocket != nullptr) {
 				boost::system::error_code ec;
 				tempSocket->shutdown(tcp::socket::shutdown_both, ec);
-				std::cerr << ec.message() << std::endl;
+				if (ec) {
+					Logger::Log(LOG_LEVEL::Error, "Error on TCPAccept closing: " + ec.message());
+				}
 				tempSocket->close();
 		}
 }
 
 TCPAcceptor::~TCPAcceptor()
 {
-		std::cout << "TCPAcceptor destructor called" << std::endl;
+
 }

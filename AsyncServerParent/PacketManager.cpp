@@ -4,10 +4,10 @@
 #include "IPacket.h"
 #include "OPacket.h"
 #include "PKey.h"
+#include "Logger.h"
 #include <boost/ref.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/thread.hpp>
-#include <iostream>
 #include <list>
 
 PacketManager::PacketManager(Server* server)
@@ -122,7 +122,7 @@ void PacketManager::serverProcess(boost::shared_ptr<IPacket> iPack)
 	int keyI = binarySearchKey(found, iPack->getLocKey());
 	if (!found)
 	{
-		std::cerr << "Could not find locKey " << iPack->getLocKey() << std::endl;
+		LOG_PRINTF(LOG_LEVEL::Error, "Could not find locKey %d", iPack->getLocKey());
 		if (THROW_KEY_NOT_FOUND_EXCEPTION)
 			throw std::invalid_argument("Could not find the locKey!");
 	}

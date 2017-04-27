@@ -4,10 +4,11 @@
 #include "HeaderManager.h"
 #include "ClientManager.h"
 #include "OPacket.h"
+#include "IPacket.h"
+#include "Logger.h"
 #include <boost/make_shared.hpp>
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
-#include <iostream>
 
 TCPConnection::TCPConnection(Server* server, boost::shared_ptr<boost::asio::ip::tcp::socket> boundSocket)
 	:server(server), socket(boundSocket), cID(cID), errorMode(DEFAULT_ERROR_MODE), receiveStorage(nullptr), alive(true), sending(false)
@@ -43,11 +44,9 @@ void TCPConnection::asyncReceiveHandler(const boost::system::error_code& error, 
 	{
 		if (error == boost::asio::error::connection_reset)
 		{
-			std::cout << "Connection Closed" << std::endl;
 			server->getClientManager()->removeClient(cID);
-			return;
 		}
-		std::cerr << "Error occured in TCP Reading: " << error << " - " << error.message() << std::endl;
+		LOG_PRINTF(LOG_LEVEL::Error, "Error occured in TCP Reading: %s%s%s", error, " - ", error.message());
 		switch (errorMode)
 		{
 		case THROW_ON_ERROR:
@@ -64,6 +63,7 @@ void TCPConnection::asyncReceiveHandler(const boost::system::error_code& error, 
 	boost::shared_ptr<IPacket> iPack = hm->decryptHeader(receiveStorage->data(), nBytes, cID);
 	if (iPack != nullptr)
 	{
+		LOG_PRINTF(LOG_LEVEL::DebugLow, "Received pack %s from id %d", iPack->getLocKey(), cID);
 		server->getPacketManager()->process(iPack);
 	}
 	read();
@@ -71,6 +71,7 @@ void TCPConnection::asyncReceiveHandler(const boost::system::error_code& error, 
 
 void TCPConnection::send(boost::shared_ptr<OPacket> oPack)
 {
+	LOG_PRINTF(LOG_LEVEL::DebugLow, "Sending pack %s to id %d", oPack->getLocKey(), cID);
 		boost::shared_ptr<std::vector <unsigned char>> sendData = hm->encryptHeader(oPack);
 		sendingMutex.lock();
 		if (!sending)
@@ -118,7 +119,7 @@ void TCPConnection::asyncSendHandler(const boost::system::error_code& error, boo
 			server->getClientManager()->removeClient(cID);
 			return;
 		}
-		std::cerr << "An error occured in TCP Sending: " << error.message() << std::endl;
+		Logger::Log(LOG_LEVEL::Error, "An error occured in TCP Sending: " + error.message());
 		switch (errorMode)
 		{
 		case THROW_ON_ERROR:
@@ -133,7 +134,6 @@ void TCPConnection::asyncSendHandler(const boost::system::error_code& error, boo
 	queueSendDataMutex.lock();
 	while (!queueSendData.empty())
 	{
-		std::cout << "Queue used" << std::endl;
 		boost::shared_ptr<std::vector <unsigned char>> sendData = queueSendData.front();
 		queueSendData.pop();
 		boost::asio::write(*socket, boost::asio::buffer(*sendData, sendData->size()));
@@ -143,20 +143,19 @@ void TCPConnection::asyncSendHandler(const boost::system::error_code& error, boo
 
 void TCPConnection::close()
 {
-		if (socket != nullptr) {
-				boost::system::error_code ec;
-				socket->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
-				if (ec)
-				{
-						std::cerr << "Error when shutting down TCPConnection: " << ec.message() << std::endl;
-				}
-				socket->close();
+	if (socket != nullptr) {
+		boost::system::error_code ec;
+		socket->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+		if (ec)
+		{
+			Logger::Log(LOG_LEVEL::Error, "Error when shutting down TCPConnection: " + ec.message());
 		}
+		socket->close();
+	}
 }
 
 TCPConnection::~TCPConnection()
 {
-	std::cout << "TCP CONNECTION DESTRUCTOR CALLED" << std::endl;
 	if (hm != nullptr)
 	{
 		delete hm;

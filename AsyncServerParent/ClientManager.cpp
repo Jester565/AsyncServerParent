@@ -4,6 +4,7 @@
 #include "OPacket.h"
 #include "TCPConnection.h"
 #include "Client.h"
+#include "Logger.h"
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
 using namespace boost::asio::ip;
@@ -18,7 +19,6 @@ Client* ClientManager::addClient(boost::shared_ptr <TCPConnection> tcpConnection
 {
 	Client* client = nullptr; 
 	IDType id = aquireNextID(); 
-	std::cout << id << std::endl;
 	if (id < MAX_CLIENTS)
 	{
 		client = server->createClient(tcpConnection, id);
@@ -27,7 +27,7 @@ Client* ClientManager::addClient(boost::shared_ptr <TCPConnection> tcpConnection
 	}
 	else
 	{
-		std::cerr << "Maximum amount of clients has been exceeded... unable to add" << std::endl;
+		Logger::Log(LOG_LEVEL::Error, "Maximum amount of clients has been exceeded... unable to add");
 	}
 	return client;
 }
@@ -63,7 +63,7 @@ bool ClientManager::removeClient(IDType id)
 	std::map <IDType, Client*>::iterator idFind = clients.find(id);
 	if (idFind == clients.end())
 	{
-		std::cerr << "Could not find the client to remove" << std::endl;
+		Logger::Log(LOG_LEVEL::Warning, "Could not find and remove client " + std::to_string(id));
 		return false;
 	}
 	else
@@ -104,7 +104,7 @@ void ClientManager::send(boost::shared_ptr<OPacket> oPack)
 		}
 		else
 		{
-			std::cerr << "Error occured in ClientManager:send, could not find the client id: " << oPack->getSendToIDs().at(i) << std::endl;
+			Logger::Log(LOG_LEVEL::Error, "Error occured in ClientManager:send, could not find the client id: " + std::to_string(oPack->getSendToIDs().at(i)));
 		}
 	}
 }
@@ -114,7 +114,7 @@ void ClientManager::send(boost::shared_ptr<OPacket> oPack, IDType sendToID)
 	Client* client = getClient(sendToID);
 	if (client == nullptr)
 	{
-		std::cerr << "Error occured in ClientManager:send, could not find client nubmer" << sendToID << std::endl;
+		Logger::Log(LOG_LEVEL::Error, "Error occured in ClientManager::send, could not find client id: " + std::to_string(sendToID));
 		switch (errorMode)
 		{
 		case THROW_ON_ERROR:
@@ -136,7 +136,7 @@ void ClientManager::send(boost::shared_ptr<std::vector<unsigned char>> sendData,
 	Client* client = getClient(sendToID);
 	if (client == nullptr)
 	{
-		std::cerr << "Error occured in ClientManager:send, could not find client nubmer" << sendToID << std::endl;
+		Logger::Log(LOG_LEVEL::Error, "Error occured in ClientManager:send, could not find client nubmer" + std::to_string(sendToID));
 		switch (errorMode)
 		{
 		case THROW_ON_ERROR:
@@ -165,7 +165,7 @@ void ClientManager::send(boost::shared_ptr<OPacket> oPack, Client* client)
 {
 	if (client == nullptr)
 	{
-		std::cerr << "Error in ClientManager::send, the client is nullptr" << std::endl;
+		Logger::Log(LOG_LEVEL::Error, "Error in ClientManager::send, the client is nullptr");
 		switch (errorMode)
 		{
 		case THROW_ON_ERROR:
