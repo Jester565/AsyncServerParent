@@ -35,7 +35,7 @@ Client* ClientManager::addClient(boost::shared_ptr <TCPConnection> tcpConnection
 Client* ClientManager::getClient(IDType id)
 {
 	boost::shared_lock <boost::shared_mutex> lock(clientMapMutex);
-	std::map <IDType, Client*>::iterator mapFind = clients.find(id);
+	ClientIter mapFind = clients.find(id);
 	if (mapFind != clients.end())
 	{
 		return mapFind->second;
@@ -60,7 +60,7 @@ Client * ClientManager::getClient(const std::string & ip, uint16_t port)
 bool ClientManager::removeClient(IDType id)
 {
 	boost::upgrade_lock <boost::shared_mutex> lock(clientMapMutex);
-	std::map <IDType, Client*>::iterator idFind = clients.find(id);
+	ClientIter idFind = clients.find(id);
 	if (idFind == clients.end())
 	{
 		Logger::Log(LOG_LEVEL::Warning, "Could not find and remove client " + std::to_string(id));
@@ -166,18 +166,6 @@ void ClientManager::send(boost::shared_ptr<OPacket> oPack, Client* client)
 	if (client == nullptr)
 	{
 		Logger::Log(LOG_LEVEL::Error, "Error in ClientManager::send, the client is nullptr");
-		switch (errorMode)
-		{
-		case THROW_ON_ERROR:
-			throw "Error in ClientManager:send";
-			break;
-		case RETURN_ON_ERROR:
-			return;
-			break;
-		case RECALL_ON_ERROR:
-			send(oPack);
-			return;
-		};
 	}
 	client->getTCPConnection()->send(oPack);
 }
@@ -228,7 +216,7 @@ void ClientManager::sendToAllExcept(boost::shared_ptr<OPacket> oPack, IDType* ex
 
 ClientManager::~ClientManager()
 {
-	for (std::map <IDType, Client*>::iterator mapIter = clients.begin(); mapIter != clients.end(); mapIter++)
+	for (ClientIter mapIter = clients.begin(); mapIter != clients.end(); mapIter++)
 	{
 		delete mapIter->second;
 		mapIter->second = nullptr;
