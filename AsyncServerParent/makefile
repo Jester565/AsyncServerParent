@@ -1,5 +1,5 @@
 CC = g++ -std=c++11
-CC_FLAGS = -w
+CC_FLAGS = -w -g
 LIBS = -lodbc -lboost_system -lboost_serialization -lboost_thread -lprotobuf
 INCLUDES =
 

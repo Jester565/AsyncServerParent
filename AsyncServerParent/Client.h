@@ -23,6 +23,8 @@ public:
 	//Creates a client from a TCP Connection
 	Client(boost::shared_ptr<TCPConnection> tcpConnection, Server* server, IDType id);
 
+	virtual void init();
+	
 	//Accessor for tcpConnection
 	boost::shared_ptr <TCPConnection> getTCPConnection()
 	{
