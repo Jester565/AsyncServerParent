@@ -3,6 +3,7 @@ Sorry for the bad naming. THIS IS NOT JUST THE locKey, it also contains the call
 */
 
 #pragma once
+#include "Macros.h"
 #include <string>
 #include <functional>
 #include <boost/shared_ptr.hpp>
@@ -28,6 +29,10 @@ public:
 		runMethod = std::bind(func, obj, std::placeholders::_1);
 	}
 
+	void flagForRemoval() {
+		runMethod = nullptr;
+	}
+
 	//Accessor for the locKey
 	const std::string& getKey() const
 	{
@@ -41,12 +46,13 @@ public:
 	}
 
 	//Run the callback with the iPacket
-	virtual void run(boost::shared_ptr<IPacket> iPack)
+	virtual bool run(boost::shared_ptr<IPacket> iPack)
 	{
-		if (runMethod != nullptr)
+		if (runMethod != nullptr) {
 			runMethod(iPack);
-		else
-			throw "Run was not overloaded or provided with a runMethod";
+			return true;
+		}
+		return false;
 	}
 
 	friend bool operator< (const PKey& pKey1, const PKey& pKey2)

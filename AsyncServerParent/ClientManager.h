@@ -18,8 +18,8 @@ class OPacket;
 class Client;
 class Server;
 
+typedef std::unordered_map <IDType, ClientPtr>::iterator ClientIter;
 
-typedef  std::unordered_map <IDType, Client*>::iterator ClientIter;
 class ClientManager
 {
 public:
@@ -30,19 +30,19 @@ public:
 	ClientManager(Server* server);
 
 	//Gets a unique id and then adds created Client obj to clients
-	virtual Client* addClient(boost::shared_ptr <TCPConnection> tcpConnection);
+	virtual ClientPtr addClient(boost::shared_ptr <TCPConnection> tcpConnection);
 
 	//Get client from clients map using a unique id
-	virtual Client* getClient(IDType id);
+	virtual ClientPtr getClient(IDType id);
 
 	//Get client from clients map using their address and port (I don't use this often but its there)
-	virtual Client* getClient(const std::string& ip, uint16_t port);
+	virtual ClientPtr getClient(const std::string& ip, uint16_t port);
 	
 	//Destroy client and remove it from clients map
 	virtual bool removeClient(IDType id);
 
 	//Accessor for clients map
-	std::unordered_map <IDType, Client*> getIDClientMap() const
+	std::unordered_map <IDType, ClientPtr> getIDClientMap() const
 	{
 		return clients;
 	}
@@ -54,7 +54,7 @@ public:
 	virtual void send(boost::shared_ptr<OPacket> oPack, IDType sendTo);
 
 	//Send the oPacket only to the sendToClient (will not look at OPacket::sendToIds)
-	virtual void send(boost::shared_ptr<OPacket> oPack, Client* sendToClient);
+	virtual void send(boost::shared_ptr<OPacket> oPack, ClientPtr sendToClient);
 
 	//Sends packet to all connected clients (will not look at OPacket::sendToIds)
 	virtual void sendToAll(boost::shared_ptr<OPacket> oPack);
@@ -74,19 +74,6 @@ public:
 	//Will close the TCPConnection of all clients (does not delete the clients though), this is used when destroying the server because Boost::Asio is very picky about destruction
 	virtual void close();
 
-	//Ignore this, I'll remove it soon (it was supposed to let you determine if an error would shut down the server)
-	void setErrorMode(int mode)
-	{
-		errorMode = mode;
-	}
-
-
-	//Ignore this, I'll remove it soon (it was supposed to let you determine if an error would shut down the server)
-	int getErrorMode() const
-	{
-		return errorMode;
-	}
-
 	//Prevents multiple threads from accessing/modifying the clients map
 	boost::shared_mutex clientMapMutex;
 
@@ -95,13 +82,10 @@ public:
 
 protected:
 	//unordered_map allows for faster access (its Java's hashmap equivalent)
-	std::unordered_map <IDType, Client*> clients;
+	std::unordered_map <IDType, ClientPtr> clients;
 	//Iterates through all the ids (starting at 1) and looks for the lowest availible one (maybe this could be more efficient)
 	IDType aquireNextID();
 	//Stores the server so we can access and owners and call CreateClient()
 	Server* server;
-
-	//ignore this
-	int errorMode;
 };
 

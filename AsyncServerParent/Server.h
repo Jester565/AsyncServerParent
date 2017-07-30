@@ -14,7 +14,6 @@ for OPackets, IPackets, clients, etc.
 
 //Forward declaration
 class ClientManager;
-class PacketManager;
 class TCPAcceptor;
 class TCPConnection;
 class HeaderManager;
@@ -22,6 +21,8 @@ class IPacket;
 class OPacket;
 class Client;
 class ServicePool;
+
+typedef std::function<void(ClientPtr)> ConnectHandler;
 
 
 class Server
@@ -42,12 +43,6 @@ public:
 		return cm;
 	}
 
-	//Accessor for PacketManager
-	PacketManager* getPacketManager()
-	{
-		return pm;
-	}
-
 	//Accessor for servicePool
 	ServicePool* getServicePool()
 	{
@@ -63,7 +58,7 @@ public:
 	//Factory: Creates an OPacket from an IPacket
 	virtual boost::shared_ptr<OPacket> createOPacket(boost::shared_ptr<IPacket> iPack, bool copyData);
 	//Factory: Creates a client with an already existing tcpConnection and the client's unique id which is used to identify it over packets(easily override)
-	virtual Client* createClient(boost::shared_ptr<TCPConnection> tcpConnection, IDType id);
+	virtual ClientPtr createClient(boost::shared_ptr<TCPConnection> tcpConnection, IDType id);
 	//Accessor for ip version
 	virtual boost::asio::ip::tcp getIPVersion()
 	{
@@ -81,8 +76,6 @@ public:
 protected:
 	//Runs one boost ASIO io_service for every unused thread (num cores - 1)
 	ServicePool* servicePool;
-	//Handles packets by linking callbacks to locKeys
-	PacketManager* pm;
 	//Manages all clients, linking a client object to a unique id
 	ClientManager* cm;
 	//The ip version of the TCPConnections

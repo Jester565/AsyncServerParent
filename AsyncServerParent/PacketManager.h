@@ -3,9 +3,10 @@ Links callbacks to locKeys (locKeys are contained in every packet to indicate wh
 */
 
 #pragma once
+#include "Macros.h"
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/shared_mutex.hpp>
-#include <vector>
+#include <unordered_map>
 #include <list>
 #include <queue>
 
@@ -27,19 +28,23 @@ public:
 	PacketManager(Server* server);
 
 	//Add PKey to pKeys
-	void addPKey(PKey*);
+	void addPKey(PKeyPtr);
 
 	//Adds PKey to pKeys
-	void addPKeys(std::vector <PKey*>);
+	void addPKeys(std::vector <PKeyPtr>);
 
 	//Removes PKey from pKeys
-	bool removePKey(PKey*);
+	bool removePKey(PKeyPtr);
 
 	//Remove multiple PKeys from pKeys
-	int removePKeys(std::vector <PKey*>);
+	int removePKeys(std::vector <PKeyPtr>);
 
 	//Given an iPack, if IPacket::serverRead is true, call serverProcess.  If serverRead is false, send the packet to the clients listed in PacketManager.
 	void process(boost::shared_ptr<IPacket> iPack);
+
+	bool hasPKey(const std::string& key);
+
+	bool hasPKey(PKeyPtr);
 
 	//Deletes all pKeys
 	~PacketManager();
@@ -47,10 +52,8 @@ public:
 protected:
 	//Given the input packet, find the callback (using IPacket::locKey) and then call the callback
 	void serverProcess(boost::shared_ptr<IPacket> iPack);
-	//Performs a binarySearch for a PKey in pKeys (used for insertion, searching, and removal)
-	int binarySearchKey(bool& found, std::string key, int f = 0, int l = USE_PKEYS_SIZE);
 	//Stores a list of PKeys where all PKeys in the list have the same locKey but may have different callbacks
-	std::vector <std::list <PKey*>> pKeys;
+	std::unordered_multimap<std::string, PKeyPtr> pKeys;
 	//Prevents multiple threads from accessing pKeys at the same time
 	boost::shared_mutex pKeyMutex;
 	//Gives us access to owners

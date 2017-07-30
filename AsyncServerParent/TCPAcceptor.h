@@ -23,12 +23,6 @@ public:
 	//Begins running the TCPAcceptor to receive connections from the specified port (this actually doesn't create a new thread, bad naming)
 	virtual void detach(uint16_t port);
 
-	//ignore this
-	void setErrorMode(int errorMode)
-	{
-		this->errorMode = errorMode;
-	}
-
 	//Stops TCPAcceptor from listening
 	void close();
 
@@ -53,8 +47,5 @@ protected:
 	Boost's acceptor
 	*/
 	boost::shared_ptr <boost::asio::ip::tcp::acceptor> acceptor;
-
-	//ignore this
-	int errorMode;
 };
 

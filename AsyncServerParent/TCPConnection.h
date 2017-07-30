@@ -35,12 +35,6 @@ public:
 	//bind function to handle receiving (must be called after receive handler is called)
 	virtual void read();
 
-	//ignore this
-	void setErrorMode(int mode)
-	{
-		this->errorMode = mode;
-	}
-
 	//accessor for the socket
 	boost::shared_ptr<boost::asio::ip::tcp::socket> getSocket()
 	{
@@ -48,15 +42,9 @@ public:
 	}
 
 	//The id of the client that owns this TCPConnection
-	void setCID(IDType cID)
+	void setSender(ClientPtr sender)
 	{
-		this->cID = cID;
-	}
-
-	//Stop another receive function from being called
-	void kill()
-	{
-		this->alive = false;
+		this->sender = sender;
 	}
 
 	//Function that is called when data is received
@@ -93,9 +81,7 @@ protected:
 	//Used to serialize and deserialize the packets, allows you to have custom headers
 	HeaderManager* hm;
 	//The id of the client that owns this TCPConnection
-	IDType cID;
-	//ignore this
-	int errorMode;
+	ClientPtr sender;
 	//If false, receive will not be called again
 	bool alive;
 };

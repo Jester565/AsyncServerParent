@@ -6,12 +6,13 @@
 #include "OPacket.h"
 #include "IPacket.h"
 #include "Logger.h"
+#include "Client.h"
 #include <boost/make_shared.hpp>
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
 
 TCPConnection::TCPConnection(Server* server, boost::shared_ptr<boost::asio::ip::tcp::socket> boundSocket)
-	:server(server), socket(boundSocket), cID(cID), errorMode(DEFAULT_ERROR_MODE), receiveStorage(nullptr), alive(true), sending(false)
+	:server(server), socket(boundSocket), receiveStorage(nullptr), alive(true), sending(false)
 {
 		if (socket != nullptr) {
 			//This will disable nagles algorithm which is supposed to reduce the number of packets coming over a network (putting many small packets into one large packet).  However, I'm in favor of sending packets as fast as possible
@@ -53,32 +54,20 @@ void TCPConnection::asyncReceiveHandler(const boost::system::error_code& error, 
 		//if the client just closed the connection, remove ourselves rom the clientManager
 		if (error == boost::asio::error::connection_reset)
 		{
-			server->getClientManager()->removeClient(cID);
+			server->getClientManager()->removeClient(sender->getID());
+			return;
 		}
 
 		LOG_PRINTF(LOG_LEVEL::Error, "Error occured in TCP Reading: %s%s%s", error, " - ", error.message());
-		
-		//ignore this switch statement, I'll get rid of this stuff soon
-		switch (errorMode)
-		{
-		case THROW_ON_ERROR:
-			throw error;
-			break;
-		case RETURN_ON_ERROR:
-			return;
-		case RECALL_ON_ERROR:
-			read();
-			return;
-		};
 		return;
 	}
 	//Parse the raw message and convert it into an IPacket
-	boost::shared_ptr<IPacket> iPack = hm->decryptHeader(receiveStorage->data(), nBytes, cID);
+	boost::shared_ptr<IPacket> iPack = hm->decryptHeader(receiveStorage->data(), nBytes, sender);
 	if (iPack != nullptr)
 	{
-		LOG_PRINTF(LOG_LEVEL::DebugLow, "Received pack %s from id %d", iPack->getLocKey(), cID);
+		LOG_PRINTF(LOG_LEVEL::DebugLow, "Received pack %s from id %d", iPack->getLocKey(), sender->getID());
 		//send the iPacket to packetManager so the correct callback can be called
-		server->getPacketManager()->process(iPack);
+		sender->getPacketManager()->process(iPack);
 	}
 	//begin reading again
 	read();
@@ -87,7 +76,7 @@ void TCPConnection::asyncReceiveHandler(const boost::system::error_code& error, 
 //Send the OPacket to the client
 void TCPConnection::send(boost::shared_ptr<OPacket> oPack)
 {
-	LOG_PRINTF(LOG_LEVEL::DebugLow, "Sending pack %s to id %d", oPack->getLocKey(), cID);
+	LOG_PRINTF(LOG_LEVEL::DebugLow, "Sending pack %s to id %d", oPack->getLocKey(), sender->getID());
 	//convert packet to binary	
 	boost::shared_ptr<std::vector <unsigned char>> sendData = hm->encryptHeader(oPack);
 	//prevent multiple thread sfrom modifying the queue of data to be sent	
@@ -136,19 +125,10 @@ void TCPConnection::asyncSendHandler(const boost::system::error_code& error, boo
 	{
 		if (error == boost::asio::error::connection_reset)
 		{
-			server->getClientManager()->removeClient(cID);
+			server->getClientManager()->removeClient(sender->getID());
 			return;
 		}
 		Logger::Log(LOG_LEVEL::Error, "An error occured in TCP Sending: " + error.message());
-		switch (errorMode)
-		{
-		case THROW_ON_ERROR:
-			throw error;
-			break;
-		case RETURN_ON_ERROR:
-			return;
-			break;
-		};
 		return;
 	}
 	queueSendDataMutex.lock();
@@ -163,6 +143,7 @@ void TCPConnection::asyncSendHandler(const boost::system::error_code& error, boo
 
 void TCPConnection::close()
 {
+	this->alive = false;
 	if (socket != nullptr) {
 		boost::system::error_code ec;
 		socket->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);

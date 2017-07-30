@@ -10,14 +10,14 @@
 using namespace boost::asio::ip;
 
 ClientManager::ClientManager(Server* server)
-	:server(server), errorMode(DEFAULT_ERROR_MODE)
+	:server(server)
 {
 
 }
 
-Client* ClientManager::addClient(boost::shared_ptr <TCPConnection> tcpConnection)
+ClientPtr ClientManager::addClient(boost::shared_ptr <TCPConnection> tcpConnection)
 {
-	Client* client = nullptr; 
+	ClientPtr client = nullptr; 
 	IDType id = aquireNextID(); 
 	if (id < MAX_CLIENTS)
 	{
@@ -32,7 +32,7 @@ Client* ClientManager::addClient(boost::shared_ptr <TCPConnection> tcpConnection
 	return client;
 }
 
-Client* ClientManager::getClient(IDType id)
+ClientPtr ClientManager::getClient(IDType id)
 {
 	boost::shared_lock <boost::shared_mutex> lock(clientMapMutex);
 	ClientIter mapFind = clients.find(id);
@@ -43,7 +43,7 @@ Client* ClientManager::getClient(IDType id)
 	return nullptr;
 }
 
-Client * ClientManager::getClient(const std::string & ip, uint16_t port)
+ClientPtr ClientManager::getClient(const std::string & ip, uint16_t port)
 {
 	boost::shared_lock <boost::shared_mutex> lock(clientMapMutex);
 	for (auto it = clients.begin(); it != clients.end(); it++)
@@ -69,7 +69,6 @@ bool ClientManager::removeClient(IDType id)
 	else
 	{
 		boost::upgrade_to_unique_lock <boost::shared_mutex> uniqueLock(lock);
-		delete idFind->second;
 		clients.erase(idFind);
 		return true;
 	}
@@ -97,7 +96,7 @@ void ClientManager::send(boost::shared_ptr<OPacket> oPack)
 	}
 	for (int i = 0; i < oPack->getSendToIDs().size(); i++)
 	{
-		Client* client = getClient(oPack->getSendToIDs().at(i));
+		ClientPtr client = getClient(oPack->getSendToIDs().at(i));
 		if (client != nullptr)
 		{
 			send(oPack, client);
@@ -111,63 +110,50 @@ void ClientManager::send(boost::shared_ptr<OPacket> oPack)
 
 void ClientManager::send(boost::shared_ptr<OPacket> oPack, IDType sendToID)
 {
-	Client* client = getClient(sendToID);
+	ClientPtr client = getClient(sendToID);
 	if (client == nullptr)
 	{
 		Logger::Log(LOG_LEVEL::Error, "Error occured in ClientManager::send, could not find client id: " + std::to_string(sendToID));
-		switch (errorMode)
-		{
-		case THROW_ON_ERROR:
-			throw "Error in ClientManager:send";
-			break;
-		case RETURN_ON_ERROR:
-			return;
-			break;
-		case RECALL_ON_ERROR:
-			send(oPack);
-			return;
-		};
+		return;
 	}
-	client->getTCPConnection()->send(oPack);
+	if (client->getTCPConnection() != nullptr) {
+		client->getTCPConnection()->send(oPack);
+	}
 }
 
 void ClientManager::send(boost::shared_ptr<std::vector<unsigned char>> sendData, IDType sendToID)
 {
-	Client* client = getClient(sendToID);
+	ClientPtr client = getClient(sendToID);
 	if (client == nullptr)
 	{
 		Logger::Log(LOG_LEVEL::Error, "Error occured in ClientManager:send, could not find client nubmer" + std::to_string(sendToID));
-		switch (errorMode)
-		{
-		case THROW_ON_ERROR:
-			throw "Error in ClientManager:send";
-			break;
-		case RETURN_ON_ERROR:
-			return;
-			break;
-		case RECALL_ON_ERROR:
-			return;
-		};
+		return;
 	}
-	client->getTCPConnection()->send(sendData);
+	if (client->getTCPConnection() != nullptr) {
+		client->getTCPConnection()->send(sendData);
+	}
 }
 
 void ClientManager::close()
 {
 		clientMapMutex.lock();
 		for (auto it = clients.begin(); it != clients.end(); it++) {
+			if (it->second->getTCPConnection() != nullptr) {
 				it->second->getTCPConnection()->close();
+			}
 		}
 		clientMapMutex.unlock();
 }
 
-void ClientManager::send(boost::shared_ptr<OPacket> oPack, Client* client)
+void ClientManager::send(boost::shared_ptr<OPacket> oPack, ClientPtr client)
 {
 	if (client == nullptr)
 	{
 		Logger::Log(LOG_LEVEL::Error, "Error in ClientManager::send, the client is nullptr");
 	}
-	client->getTCPConnection()->send(oPack);
+	if (client->getTCPConnection() != nullptr) {
+		client->getTCPConnection()->send(oPack);
+	}
 }
 
 void ClientManager::sendToAll(boost::shared_ptr<OPacket> oPack)
@@ -216,10 +202,5 @@ void ClientManager::sendToAllExcept(boost::shared_ptr<OPacket> oPack, IDType* ex
 
 ClientManager::~ClientManager()
 {
-	for (ClientIter mapIter = clients.begin(); mapIter != clients.end(); mapIter++)
-	{
-		delete mapIter->second;
-		mapIter->second = nullptr;
-	}
 	clients.clear();
 }

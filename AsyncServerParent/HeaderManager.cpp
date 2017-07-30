@@ -24,13 +24,13 @@ boost::shared_ptr<std::vector<unsigned char>> HeaderManager::encryptHeader(boost
 	return encryptHeaderToBigEndian(oPack);
 }
 
-boost::shared_ptr<IPacket> HeaderManager::decryptHeader(unsigned char* data, unsigned int size, IDType cID)
+boost::shared_ptr<IPacket> HeaderManager::decryptHeader(unsigned char* data, unsigned int size, ClientPtr sender)
 {
 	if (bEndian)
 	{
-		return decryptHeaderAsBigEndian(data, size, cID);
+		return decryptHeaderAsBigEndian(data, size, sender);
 	}
-	return decryptHeaderFromBigEndian(data, size, cID);
+	return decryptHeaderFromBigEndian(data, size, sender);
 }
 
 
@@ -44,22 +44,20 @@ boost::shared_ptr<std::vector<unsigned char>> HeaderManager::encryptHeaderToBigE
 	return boost::make_shared<std::vector<unsigned char>>();
 }
 
-boost::shared_ptr<IPacket> HeaderManager::decryptHeaderAsBigEndian(unsigned char* data, unsigned int size, IDType cID)
+boost::shared_ptr<IPacket> HeaderManager::decryptHeaderAsBigEndian(unsigned char* data, unsigned int size, ClientPtr sender)
 {
 	return boost::make_shared<IPacket>();
 }
 
-boost::shared_ptr<IPacket> HeaderManager::decryptHeaderFromBigEndian(unsigned char* data, unsigned int size, IDType cID)
+boost::shared_ptr<IPacket> HeaderManager::decryptHeaderFromBigEndian(unsigned char* data, unsigned int size, ClientPtr sender)
 {
 	return boost::make_shared<IPacket>();
 }
 
-void HeaderManager::setIPack(boost::shared_ptr<IPacket> iPack, char * locKey, IDType sentFromID, std::vector<IDType>& sendToIDs, boost::shared_ptr<std::string> mainData, bool serverRead)
+void HeaderManager::setIPack(boost::shared_ptr<IPacket> iPack, const std::string& locKey, ClientPtr sender, std::vector<IDType>& sendToIDs, boost::shared_ptr<std::string> mainData, bool serverRead)
 {
-	iPack->locKey[0] = locKey[0];
-	iPack->locKey[1] = locKey[1];
-	iPack->locKey[2] = '\0';
-	iPack->sentFromID = sentFromID;
+	iPack->locKey = iPack->getLocKey();
+	iPack->sender = sender;
 	iPack->serverRead = serverRead;
 	iPack->data = mainData;
 	iPack->sendToClients = sendToIDs;

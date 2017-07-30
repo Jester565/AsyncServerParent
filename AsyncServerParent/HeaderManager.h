@@ -22,7 +22,7 @@ public:
 	virtual boost::shared_ptr<std::vector<unsigned char>> encryptHeader(boost::shared_ptr<OPacket> pack);
 
 	//Given bytes, output an IPacket (this will call decryptHeaderAsLittleEndian or decryptHeaderAsBigEndian depending on your machine)
-	virtual boost::shared_ptr<IPacket> decryptHeader(unsigned char* data, unsigned int size, IDType cID);
+	virtual boost::shared_ptr<IPacket> decryptHeader(unsigned char* data, unsigned int size, ClientPtr sender);
 
 	//Doesn't do anything, just puts the destructor in the virtual table
 	virtual ~HeaderManager();
@@ -32,12 +32,12 @@ protected:
 
 	virtual boost::shared_ptr<std::vector<unsigned char>> encryptHeaderToBigEndian(boost::shared_ptr<OPacket> pack);
 
-	virtual boost::shared_ptr<IPacket> decryptHeaderAsBigEndian(unsigned char* data, unsigned int size, IDType cID);
+	virtual boost::shared_ptr<IPacket> decryptHeaderAsBigEndian(unsigned char* data, unsigned int size, ClientPtr sender);
 
-	virtual boost::shared_ptr<IPacket> decryptHeaderFromBigEndian(unsigned char* data, unsigned int size, IDType cID);
+	virtual boost::shared_ptr<IPacket> decryptHeaderFromBigEndian(unsigned char* data, unsigned int size, ClientPtr sender);
 
 	//This builds the iPack parameter, settings its data members to the rest of the parameters (you could just construct an IPacket yourself too but this helps share code)
-	void setIPack(boost::shared_ptr<IPacket> iPack, char* locKey, IDType sentFromID, std::vector<IDType>& sendToIDs, boost::shared_ptr<std::string> mainData, bool serverRead = true);
+	void setIPack(boost::shared_ptr<IPacket> iPack, const std::string& locKey, ClientPtr sender, std::vector<IDType>& sendToIDs, boost::shared_ptr<std::string> mainData, bool serverRead = true);
 
 	//Allows you access owners, this isn't used in this abstract HeaderManager, but may be useful in children
 	Server* server;

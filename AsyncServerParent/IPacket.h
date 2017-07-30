@@ -24,13 +24,15 @@ public:
 	IPacket();
 
 	//Accessor for sentFromID
-	IDType getSentFromID()
+	ClientPtr getSender()
 	{
-		return sentFromID;
+		return sender;
 	}
 
+	int getSenderID();
+
 	//Accessor for locKey
-	const char* getLocKey() const
+	std::string getLocKey() const
 	{
 		return locKey;
 	}
@@ -92,7 +94,7 @@ public:
 	friend std::ostream& operator << (std::ostream& oStream, IPacket& iPack)
 	{
 		oStream << "Printing out packet: " << std::endl << "loc key: " << iPack.locKey << std::endl;
-		oStream << "Sent from: " << iPack.sentFromID << std::endl;
+		oStream << "Sent from: " << iPack.getSenderID() << std::endl;
 		oStream << "Send to clients: size = " << iPack.sendToClients.size() << "  Items: ";
 		for (int i = 0; i < iPack.sendToClients.size(); i++)
 		{
@@ -111,10 +113,10 @@ public:
 protected:
 	//The dataSize that the header has predicted (may not be the size of the actual data)
 	uint32_t dataSize;
-	//The id of the client who we received this packet from
-	IDType sentFromID;
+	//The client who we received this packet from
+	ClientPtr sender;
 	//IMPORTANT: This identifies the purpose of the packet.  A locKey is used to determine which callback will be used to run the function
-	char locKey[3];
+	std::string locKey;
 
 	//SECURITY ISSUE: Fix before use
 	//Some packets may need to be read by the server, others may just go directly to other clients.  If serverRead is false, the packet will immediatly be sent to those in its sendToIDs 

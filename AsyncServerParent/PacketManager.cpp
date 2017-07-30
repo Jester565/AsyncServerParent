@@ -16,51 +16,33 @@ PacketManager::PacketManager(Server* server)
 
 }
 
-void PacketManager::addPKey(PKey* pKey)
+void PacketManager::addPKey(PKeyPtr pKey)
 {
-	boost::upgrade_lock <boost::shared_mutex> lock(pKeyMutex);
-	bool found = false;
-	int index = binarySearchKey(found, pKey->getKey());
-	boost::upgrade_to_unique_lock <boost::shared_mutex> uniqueLock(lock);
-	if (!found)
-	{
-		pKeys.insert(pKeys.begin() + index, std::list<PKey*>());
-	}
-	pKeys.at(index).push_back(pKey);
+	boost::unique_lock <boost::shared_mutex> uniqueLock(pKeyMutex);
+	pKeys.insert(std::make_pair(pKey->getKey(), pKey));
 }
 
-void PacketManager::addPKeys(std::vector <PKey*> aPKeys)
+void PacketManager::addPKeys(std::vector <PKeyPtr> aPKeys)
 {
 	for (int i = 0; i < aPKeys.size(); i++)
 		addPKey(aPKeys[i]);
 }
 
-bool PacketManager::removePKey(PKey* pKey)
+bool PacketManager::removePKey(PKeyPtr pKey)
 {
-	boost::upgrade_lock <boost::shared_mutex> lock(pKeyMutex);
-	bool found = false;
-	int index = binarySearchKey(found, pKey->getKey());
-	if (found)
-	{
-		for (std::list <PKey*>::iterator it = pKeys.at(index).begin(); it != pKeys.at(index).end(); it++)
-		{
-			if (pKey == *it)
-			{
-				boost::upgrade_to_unique_lock <boost::shared_mutex> uniqueLock(lock);
-				pKeys.at(index).erase(it);
-				if (pKeys.at(index).size() == 0)
-				{
-					pKeys.erase(pKeys.begin() + index);
-				}
-
-				return true;
-			}
+	boost::unique_lock <boost::shared_mutex> lock(pKeyMutex);
+	auto iters = pKeys.equal_range(pKey->getKey());
+	for (auto it = iters.first; it != iters.second; it++) {
+		if (pKey == it->second) {
+			pKeys.erase(it);
+			return true;
 		}
 	}
+	Logger::Log(LOG_LEVEL::Warning, "Failed to remove pkey");
 	return false;
 }
 
-int PacketManager::removePKeys(std::vector <PKey*> rPKeys)
+int PacketManager::removePKeys(std::vector <PKeyPtr> rPKeys)
 {
 	int foundCount = 0;
 	for (int i = 0; i < rPKeys.size(); i++)
@@ -83,65 +65,41 @@ void PacketManager::process(boost::shared_ptr<IPacket> iPack)
 	}
 }
 
-int PacketManager::binarySearchKey(bool& found, std::string key, int f, int l)
-{
-	if (pKeys.size() == 0)
-	{
-		found = false;
-		return 0;
-	}
-	if (l == USE_PKEYS_SIZE)
-	{
-		l = pKeys.size() - 1;
-	}
-	std::string midKey = pKeys[(l + f) / 2].front()->getKey();
-	if (midKey < key) {
-		if ((l + f) / 2 + 1 > l)
-		{
-			found = false;
-			return (l + f) / 2 + 1;
-		}
-		return binarySearchKey(found, key, (l + f) / 2 + 1, l);
-	}
-	else if (midKey > key) {
-		if ((l + f) / 2 - 1 < f)
-		{
-			found = false;
-			return (l + f) / 2;
-		}
-		return binarySearchKey(found, key, f, (l + f) / 2 - 1);
-	}
-	found = true;
-	return (l + f) / 2;
-}
-
 void PacketManager::serverProcess(boost::shared_ptr<IPacket> iPack)
 {
 	boost::shared_lock <boost::shared_mutex> lock(pKeyMutex);
-	bool found = false;
-	int keyI = binarySearchKey(found, iPack->getLocKey());
-	if (!found)
-	{
-		LOG_PRINTF(LOG_LEVEL::Error, "Could not find locKey %d", iPack->getLocKey());
-		if (THROW_KEY_NOT_FOUND_EXCEPTION)
-			throw std::invalid_argument("Could not find the locKey!");
+	auto iters = pKeys.equal_range(iPack->getLocKey());
+	for (auto iter = iters.first; iter != iters.second;) {
+		if (!iter->second->run(iPack)) {
+			iter = pKeys.erase(iter);
+		}
+		else {
+			iter++;
+		}
 	}
-	else
-	{
-		for (std::list <PKey*>::const_iterator it = pKeys.at(keyI).begin(); it != pKeys.at(keyI).end(); it++)
-			(*it)->run(iPack);
+}
+
+
+bool PacketManager::hasPKey(const std::string & key)
+{
+	boost::shared_lock <boost::shared_mutex> lock(pKeyMutex);
+	return (pKeys.find(key) != pKeys.end());
+}
+
+
+bool PacketManager::hasPKey(PKeyPtr pKey)
+{
+	boost::shared_lock <boost::shared_mutex> lock(pKeyMutex);
+	auto iters = pKeys.equal_range(pKey->getKey());
+	for (auto iter = iters.first; iter != iters.second;) {
+		if (iter->second == pKey) {
+			return true;
+		}
 	}
+	return false;
 }
 
 PacketManager::~PacketManager()
 {
-	while (!pKeys.empty())
-	{
-		while (!pKeys.at(pKeys.size() - 1).empty())
-		{
-			delete pKeys.at(pKeys.size() - 1).front();
-			pKeys.at(pKeys.size() - 1).pop_front();
-		}
-		pKeys.pop_back();
-	}
+
 }

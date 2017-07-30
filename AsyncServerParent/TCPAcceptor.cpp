@@ -12,7 +12,7 @@
 using namespace boost::asio::ip;
 
 TCPAcceptor::TCPAcceptor(Server* server)
-	:server(server), errorMode(DEFAULT_ERROR_MODE)
+	:server(server)
 {
 
 }
@@ -34,18 +34,6 @@ void TCPAcceptor::asyncAcceptHandler(const boost::system::error_code& error)
 	if (error)
 	{
 		Logger::Log(LOG_LEVEL::Error, "Error occured in TCPAcceptor: " + error.message());
-		switch (errorMode)
-		{
-		case THROW_ON_ERROR:
-			throw error;
-			break;
-		case RETURN_ON_ERROR:
-			return;
-			break;
-		case RECALL_ON_ERROR:
-			runAccept();
-			return;
-		};
 		return;
 	}
 	boost::shared_ptr<TCPConnection> tcpConnection = boost::make_shared<TCPConnection>(server, tempSocket);

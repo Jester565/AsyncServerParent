@@ -22,28 +22,19 @@ public:
 	//Creates OPacket from the IPacket by copying over its locKey, senderID, sendToIDs and (if copyData is true) the iPacket's data
 	OPacket(IPacket* iPack, bool copyData);
 
-	OPacket(const char* loc = nullptr, IDType senderID = 0);
 
-	OPacket(const char* loc, IDType senderID, IDType sendToID);
+	OPacket(const std::string& loc = "INVALID", IDType senderID = 0);
 
-	OPacket(const char* loc, IDType senderID, IDType* sendToIDs, unsigned int sendToIDsSize);
+	OPacket(const std::string& loc, IDType senderID, IDType sendToID);
 
-	OPacket(const char* loc, IDType senderID, std::vector <IDType> sendToIDs);
+	OPacket(const std::string& loc, IDType senderID, IDType* sendToIDs, unsigned int sendToIDsSize);
+
+	OPacket(const std::string& loc, IDType senderID, std::vector <IDType> sendToIDs);
 
 	//Set the locKey (only reads the first two characters of the loc parameter)
-	void setLocKey(const char* loc)
+	void setLocKey(const std::string locKey)
 	{
-		if (loc != nullptr)
-		{
-			locKey[0] = loc[0];
-			locKey[1] = loc[1];
-		}
-		else
-		{
-			locKey[0] = loc[UNDEFINED_LOC];
-			locKey[1] = loc[UNDEFINED_LOC];
-		}
-		locKey[2] = '\0';
+		this->locKey = locKey;
 	}
 
 	//Set ID of the client sending the packet (if its the server, set it to 0)
@@ -79,7 +70,7 @@ public:
 	}
 
 	//Accessor locKey (locKey indicates which callback to call)
-	const char* getLocKey() const
+	std::string getLocKey() const
 	{
 		return locKey;
 	}
@@ -133,7 +124,7 @@ public:
 
 protected:
 	//IMPORTANT: This identifies the purpose of the packet.  A locKey is used to determine which callback will be used to run the function
-	char locKey[3];
+	std::string locKey;
 	//The id of the client who is sending the oPacket (0 if the server)
 	IDType senderID;
 	//The ids to send the packet to)

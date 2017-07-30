@@ -11,7 +11,7 @@
 #include <google/protobuf/service.h>
 
 Server::Server(const boost::asio::ip::tcp& version)
-	:ipVersion(version), pm(nullptr), cm(nullptr), servicePool(nullptr), tcpAcceptor(nullptr)
+	:ipVersion(version), cm(nullptr), servicePool(nullptr), tcpAcceptor(nullptr)
 {
 	
 }
@@ -19,7 +19,6 @@ Server::Server(const boost::asio::ip::tcp& version)
 void Server::createManagers()
 {
 		servicePool = new ServicePool();
-		pm = new PacketManager(this);
 		cm = new ClientManager(this);
 }
 
@@ -47,9 +46,9 @@ boost::shared_ptr<OPacket> Server::createOPacket(boost::shared_ptr<IPacket> iPac
 	return boost::make_shared<OPacket>(&(*iPack), copyData);
 }
 
-Client * Server::createClient(boost::shared_ptr<TCPConnection> tcpConnection, IDType id)
+ClientPtr Server::createClient(boost::shared_ptr<TCPConnection> tcpConnection, IDType id)
 {
-	return new Client(tcpConnection, this, id);
+	return boost::make_shared<Client>(tcpConnection, this, id);
 }
 
 void Server::shutdownIO()
@@ -69,11 +68,6 @@ void Server::destroyManagers()
 		{
 				delete cm;
 				cm = nullptr;
-		}
-		if (pm != nullptr)
-		{
-				delete pm;
-				pm = nullptr;
 		}
 }
 

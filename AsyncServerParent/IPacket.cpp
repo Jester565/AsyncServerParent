@@ -1,5 +1,6 @@
 #include "IPacket.h"
 #include "OPacket.h"
+#include "Client.h"
 #include <boost/make_shared.hpp>
 
 IPacket::IPacket()
@@ -8,6 +9,11 @@ IPacket::IPacket()
 	locKey[0] = UNDEFINED_LOC;
 	locKey[1] = UNDEFINED_LOC;
 	locKey[2] = '\0';
+}
+
+int IPacket::getSenderID()
+{
+	return sender->getID();
 }
 
 std::vector<boost::shared_ptr<OPacket>>* IPacket::convertToOPacks(bool copyData)

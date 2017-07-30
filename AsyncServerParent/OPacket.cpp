@@ -1,21 +1,22 @@
 #include "OPacket.h"
 #include "IPacket.h"
+#include "Client.h"
 #include <boost/make_shared.hpp>
 
-OPacket::OPacket(const char* loc, IDType senderID)
+OPacket::OPacket(const std::string& loc, IDType senderID)
 	:senderID(senderID)
 {
 	setLocKey(loc);
 }
 
-OPacket::OPacket(const char* loc, IDType senderID, IDType sendToID)
+OPacket::OPacket(const std::string& loc, IDType senderID, IDType sendToID)
 	: senderID(senderID)
 {
 	setLocKey(loc);
 	addSendToID(sendToID);
 }
 
-OPacket::OPacket(const char* loc, IDType senderID, IDType* sendToIDs, unsigned int sendToIDsSize)
+OPacket::OPacket(const std::string& loc, IDType senderID, IDType* sendToIDs, unsigned int sendToIDsSize)
 	: senderID(senderID)
 {
 	setLocKey(loc);
@@ -25,7 +26,7 @@ OPacket::OPacket(const char* loc, IDType senderID, IDType* sendToIDs, unsigned i
 	}
 }
 
-OPacket::OPacket(const char* loc, IDType senderID, std::vector <IDType> sendToIDs)
+OPacket::OPacket(const std::string& loc, IDType senderID, std::vector <IDType> sendToIDs)
 	: senderID(senderID)
 {
 	setLocKey(loc);
@@ -34,10 +35,8 @@ OPacket::OPacket(const char* loc, IDType senderID, std::vector <IDType> sendToID
 
 OPacket::OPacket(IPacket* iPack, bool copyData)
 {
-	locKey[0] = iPack->getLocKey()[0];
-	locKey[1] = iPack->getLocKey()[1];
-	locKey[2] = '\0';
-	senderID = iPack->getSentFromID();
+	locKey = iPack->getLocKey();
+	senderID = iPack->getSenderID();
 	sendToIDs = iPack->getSendToClients();
 	if (copyData)
 	{

@@ -1,28 +1,25 @@
 #include "PKeyOwner.h"
 #include "PacketManager.h"
+#include "Client.h"
 
-PKeyOwner::PKeyOwner(PacketManager* pm)
-	:pm(pm)
+void PKeyOwner::follow(ClientPtr client)
 {
-
+	PacketManager* pm = client->getPacketManager();
+	for (auto iter = pKeys.begin(); iter != pKeys.end(); iter++)
+	{
+		pm->addPKey(*iter);
+	}
 }
 
-void PKeyOwner::addKey(PKey* pKey)
+void PKeyOwner::addKey(PKeyPtr pKey)
 {
-	pm->addPKey(pKey);
 	pKeys.push_back(pKey);
 }
 
-void PKeyOwner::removeKey(PKey* pKey)
+void PKeyOwner::removeKey(PKeyPtr pKey)
 {
-	pm->removePKey(pKey);
+	pKey->flagForRemoval();
 	pKeys.remove(pKey);
-}
-
-void PKeyOwner::deleteKey(PKey* pKey)
-{
-	removeKey(pKey);
-	delete pKey;
 }
 
 void PKeyOwner::removeKeys()
@@ -31,13 +28,7 @@ void PKeyOwner::removeKeys()
 		removeKey(pKeys.front());
 }
 
-void PKeyOwner::deleteKeys()
-{
-	while (!pKeys.empty())
-		deleteKey(pKeys.front());
-}
-
 PKeyOwner::~PKeyOwner()
 {
-	deleteKeys();
+	removeKeys();
 }
