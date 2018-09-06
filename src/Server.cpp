@@ -8,7 +8,6 @@
 #include "HeaderManager.h"
 #include "ServicePool.h"
 #include <iostream>
-#include <google/protobuf/service.h>
 
 Server::Server(const boost::asio::ip::tcp& version)
 	:ipVersion(version), cm(nullptr), servicePool(nullptr), tcpAcceptor(nullptr)
@@ -84,5 +83,4 @@ Server::~Server()
 				delete servicePool;
 				servicePool = nullptr;
 		}
-		google::protobuf::ShutdownProtobufLibrary();
 }

@@ -1,7 +1,6 @@
 #include "HeaderManager.h"
 #include "Server.h"
 #include "IPacket.h"
-#include <google/protobuf/any.h>
 #include <iterator>
 
 HeaderManager::HeaderManager(Server* server)
