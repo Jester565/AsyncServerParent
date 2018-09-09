@@ -21,9 +21,9 @@ class IPacket;
 class OPacket;
 class Client;
 class ServicePool;
+class PacketManager;
 
 typedef std::function<void(ClientPtr)> ConnectHandler;
-
 
 class Server
 {
@@ -38,27 +38,39 @@ public:
 	virtual void run(uint16_t port);
 
 	//Accessor for clientManager
-	ClientManager* getClientManager()
+	boost::shared_ptr<ClientManager> getClientManager()
 	{
-		return cm;
+		return clientManager;
 	}
 
 	//Accessor for servicePool
-	ServicePool* getServicePool()
+	boost::shared_ptr<ServicePool> getServicePool()
 	{
 		return servicePool;
 	}
+
+	boost::shared_ptr<TCPAcceptor> getTCPAcceptor()
+	{
+		return tcpAcceptor;
+	}
+
+	boost::shared_ptr<PacketManager> getPacketManager() {
+		return packetManager;
+	}
 	
-	//Factory: Creates a HeaderManager to use in TCPConnections (you can easily override this with your own HeaderManager)
-	virtual HeaderManager* createHeaderManager();
 	//Factory: Creates an OPacket (can override with your own OPacket)
 	virtual boost::shared_ptr<OPacket> createOPacket();
+
 	//Factory: Creates an IPacket (can override with your own IPacket)
 	virtual boost::shared_ptr<IPacket> createIPacket();
-	//Factory: Creates an OPacket from an IPacket
-	virtual boost::shared_ptr<OPacket> createOPacket(boost::shared_ptr<IPacket> iPack, bool copyData);
+
 	//Factory: Creates a client with an already existing tcpConnection and the client's unique id which is used to identify it over packets(easily override)
 	virtual ClientPtr createClient(boost::shared_ptr<TCPConnection> tcpConnection, IDType id);
+
+	virtual boost::shared_ptr<HeaderManager> createHeaderManager() = 0;
+
+	virtual boost::shared_ptr<TCPConnection> createTCPConnection(boost::shared_ptr<boost::asio::ip::tcp::socket> socket);
+
 	//Accessor for ip version
 	virtual boost::asio::ip::tcp getIPVersion()
 	{
@@ -75,11 +87,13 @@ public:
 
 protected:
 	//Runs one boost ASIO io_service for every unused thread (num cores - 1)
-	ServicePool* servicePool;
+	boost::shared_ptr<ServicePool> servicePool;
 	//Manages all clients, linking a client object to a unique id
-	ClientManager* cm;
-	//The ip version of the TCPConnections
-	boost::asio::ip::tcp ipVersion;
+	boost::shared_ptr<ClientManager> clientManager;
+	//Manages all clients, linking a client object to a unique id
+	boost::shared_ptr<PacketManager> packetManager;
 	//Accepts incoming TCPConnections on the port provided by run
 	boost::shared_ptr<TCPAcceptor> tcpAcceptor;
+	//The ip version of the TCPConnections
+	boost::asio::ip::tcp ipVersion;
 };

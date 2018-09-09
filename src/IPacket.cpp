@@ -16,13 +16,19 @@ int IPacket::getSenderID()
 	return sender->getID();
 }
 
-std::vector<boost::shared_ptr<OPacket>>* IPacket::convertToOPacks(bool copyData)
+boost::shared_ptr<OPacket> IPacket::toOPack(bool copyData)
 {
-	std::vector <boost::shared_ptr<OPacket>>* oPacks = new std::vector<boost::shared_ptr<OPacket>>();
+	return boost::make_shared<OPacket>(this, copyData);
+}
+
+boost::shared_ptr<std::vector<boost::shared_ptr<OPacket>>> IPacket::convertToOPacks(bool copyData)
+{
+	auto oPacks = boost::make_shared<std::vector<boost::shared_ptr<OPacket>>>();
 	for (int i = 0; i < sendToClients.size(); i++)
 	{
-		boost::shared_ptr<OPacket> oPack = boost::make_shared<OPacket>(this, copyData);
-		oPack->setSenderID(sendToClients.at(i));
+		auto oPack = toOPack(copyData);
+		oPack->clearSendToIDs();
+		oPack->addSendToID(sendToClients.at(i));
 		oPacks->push_back(oPack);
 	}
 	return oPacks;

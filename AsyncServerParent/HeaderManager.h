@@ -7,40 +7,32 @@
 #include <boost/shared_ptr.hpp>
 #include <vector>
 
-//Forwared declaration
-class Server;
 class OPacket;
 class IPacket;
 
+
+typedef std::function<boost::shared_ptr<IPacket>()> GenIPacketHandler;
 class HeaderManager
 {
 public:
 	//Initializes HeaderManager (doesn't do anything special except assign the parameters to their corresponding data member)
-	HeaderManager(Server* server);
+	HeaderManager(GenIPacketHandler handler, unsigned int initialReceiveSize = 0);
+
+	unsigned int getInitialReceiveSize() {
+		return initialReceiveSize;
+	}
 
 	//Given an oPacket, output bytes representing the entire packet (this will call encryptHeaderAsBigEndian or littleEndian depending on your machine)
-	virtual boost::shared_ptr<std::vector<unsigned char>> encryptHeader(boost::shared_ptr<OPacket> pack);
+	virtual boost::shared_ptr<std::vector<unsigned char>> serializePacket(boost::shared_ptr<OPacket> pack) = 0;
 
 	//Given bytes, output an IPacket (this will call decryptHeaderAsLittleEndian or decryptHeaderAsBigEndian depending on your machine)
-	virtual boost::shared_ptr<IPacket> decryptHeader(unsigned char* data, unsigned int size, ClientPtr sender);
+	virtual boost::shared_ptr<IPacket> parsePacket(unsigned char* data, std::size_t size, unsigned int& bytesToReceive) = 0;
 
 	//Doesn't do anything, just puts the destructor in the virtual table
 	virtual ~HeaderManager();
 
 protected:
-	virtual boost::shared_ptr<std::vector<unsigned char>> encryptHeaderAsBigEndian(boost::shared_ptr<OPacket> pack);
-
-	virtual boost::shared_ptr<std::vector<unsigned char>> encryptHeaderToBigEndian(boost::shared_ptr<OPacket> pack);
-
-	virtual boost::shared_ptr<IPacket> decryptHeaderAsBigEndian(unsigned char* data, unsigned int size, ClientPtr sender);
-
-	virtual boost::shared_ptr<IPacket> decryptHeaderFromBigEndian(unsigned char* data, unsigned int size, ClientPtr sender);
-
-	//This builds the iPack parameter, settings its data members to the rest of the parameters (you could just construct an IPacket yourself too but this helps share code)
-	void setIPack(boost::shared_ptr<IPacket> iPack, const std::string& locKey, ClientPtr sender, std::vector<IDType>& sendToIDs, boost::shared_ptr<std::string> mainData, bool serverRead = true);
-
-	//Allows you access owners, this isn't used in this abstract HeaderManager, but may be useful in children
-	Server* server;
-
+	GenIPacketHandler genIPacketHandler;
+	unsigned int initialReceiveSize;
 	bool bEndian;
 };

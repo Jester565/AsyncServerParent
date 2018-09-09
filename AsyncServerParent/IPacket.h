@@ -29,6 +29,10 @@ public:
 		return sender;
 	}
 
+	void setSender(ClientPtr sender) {
+		this->sender = sender;
+	}
+
 	int getSenderID();
 
 	//Accessor for locKey
@@ -37,16 +41,28 @@ public:
 		return locKey;
 	}
 
+	void setLocKey(const std::string& locKey) {
+		this->locKey = locKey;
+	}
+
 	//Accessor for sendToClients
 	std::vector <IDType> getSendToClients()
 	{
 		return sendToClients;
 	}
 
+	void setSendToClients(const std::vector<IDType>& sendToClients) {
+		this->sendToClients = sendToClients;
+	}
+
 	//Accessor for getServerRead
 	bool getServerRead()
 	{
 		return serverRead;
+	}
+
+	void setServerRead(bool serverRead) {
+		this->serverRead = serverRead;
 	}
 
 	//Accessor for the packets body data
@@ -62,30 +78,9 @@ public:
 		data = boost::make_shared <std::string>(begin, end);
 	}
 
-	/*
-	gets the size of the packets body data
-	I would avoid using this and just use the size method on your actual data
-	because this will return the data size given by the header, not of the actual
-	data itself
-	*/
-	uint32_t getDataSize()
+	void setData(boost::shared_ptr<std::string> data)
 	{
-		if (data == nullptr)
-		{
-			return dataSize;
-		}
-		else
-		{
-			return data->size();
-		}
-	}
-
-	/*
-	Sets the size of the data (the TCPConnection only needs this)
-	*/
-	void setDataSize(uint32_t dataSize)
-	{
-		this->dataSize = dataSize;
+		this->data = data;
 	}
 
 	/*
@@ -104,15 +99,15 @@ public:
 		return oStream;
 	}
 
+	virtual boost::shared_ptr<OPacket> toOPack(bool copyData);
+
 	//Converts the iPacket into an array of OPacket where each sendToClient gets its own OPacket (not sure when you would need this but its there)
-	virtual std::vector<boost::shared_ptr<OPacket>>* convertToOPacks(bool copyData);
+	virtual boost::shared_ptr<std::vector<boost::shared_ptr<OPacket>>> convertToOPacks(bool copyData);
 
 	//Just puts the destructor on the virtual table
 	virtual ~IPacket();
 
 protected:
-	//The dataSize that the header has predicted (may not be the size of the actual data)
-	uint32_t dataSize;
 	//The client who we received this packet from
 	ClientPtr sender;
 	//IMPORTANT: This identifies the purpose of the packet.  A locKey is used to determine which callback will be used to run the function

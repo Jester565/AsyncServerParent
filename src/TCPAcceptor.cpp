@@ -11,21 +11,21 @@
 
 using namespace boost::asio::ip;
 
-TCPAcceptor::TCPAcceptor(Server* server)
-	:server(server)
+TCPAcceptor::TCPAcceptor(boost::shared_ptr<ServicePool> servicePool, boost::asio::ip::tcp& tcpVersion, ConnectionHandler handler)
+	:servicePool(servicePool), tcpVersion(tcpVersion), connectionHandler(handler)
 {
 
 }
 
 void TCPAcceptor::runAccept()
 {
-	tempSocket = boost::make_shared<boost::asio::ip::tcp::socket>(server->getServicePool()->getNextIOService());
+	tempSocket = boost::make_shared<boost::asio::ip::tcp::socket>(servicePool->getNextIOService());
 	acceptor->async_accept(*tempSocket, boost::bind(&TCPAcceptor::asyncAcceptHandler, shared_from_this(), boost::asio::placeholders::error));
 }
 
 void TCPAcceptor::detach(uint16_t port)
 {
-	acceptor = boost::make_shared<tcp::acceptor>(server->getServicePool()->getFirstIOService(), tcp::endpoint(server->getIPVersion(), port));
+	acceptor = boost::make_shared<tcp::acceptor>(servicePool->getFirstIOService(), tcp::endpoint(tcpVersion, port));
 	runAccept();
 }
 
@@ -36,9 +36,12 @@ void TCPAcceptor::asyncAcceptHandler(const boost::system::error_code& error)
 		Logger::Log(LOG_LEVEL::Error, "Error occured in TCPAcceptor: " + error.message());
 		return;
 	}
+	/*
 	boost::shared_ptr<TCPConnection> tcpConnection = boost::make_shared<TCPConnection>(server, tempSocket);
 	tcpConnection->start();
 	server->getClientManager()->addClient(tcpConnection);
+	*/
+	connectionHandler(tempSocket);
 	runAccept();
 }
 

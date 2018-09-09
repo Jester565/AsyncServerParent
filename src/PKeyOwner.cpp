@@ -2,18 +2,21 @@
 #include "PacketManager.h"
 #include "Client.h"
 
-void PKeyOwner::follow(ClientPtr client)
+void PKeyOwner::attach(boost::shared_ptr<PacketManager> pm)
 {
-	PacketManager* pm = client->getPacketManager();
 	for (auto iter = pKeys.begin(); iter != pKeys.end(); iter++)
 	{
 		pm->addPKey(*iter);
 	}
+	packetManagers.push_back(pm);
 }
 
 void PKeyOwner::addKey(PKeyPtr pKey)
 {
 	pKeys.push_back(pKey);
+	for (auto it = packetManagers.begin(); it != packetManagers.end(); it++) {
+		(*it)->addPKey(pKey);
+	}
 }
 
 void PKeyOwner::removeKey(PKeyPtr pKey)

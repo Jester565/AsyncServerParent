@@ -9,27 +9,18 @@
 #include <boost/thread.hpp>
 using namespace boost::asio::ip;
 
-ClientManager::ClientManager(Server* server)
-	:server(server)
+ClientManager::ClientManager()
 {
 
 }
 
-ClientPtr ClientManager::addClient(boost::shared_ptr <TCPConnection> tcpConnection)
+void ClientManager::addClient(ClientPtr client)
 {
-	ClientPtr client = nullptr; 
-	IDType id = aquireNextID(); 
-	if (id < MAX_CLIENTS)
-	{
-		client = server->createClient(tcpConnection, id);
-		boost::unique_lock <boost::shared_mutex> lock(clientMapMutex);
-		clients.emplace(id, client);
-	}
-	else
-	{
-		Logger::Log(LOG_LEVEL::Error, "Maximum amount of clients has been exceeded... unable to add");
-	}
-	return client;
+	client->setDisconnectHandler([&](ClientPtr disconnectedClient) {
+		removeClient(disconnectedClient->getID());
+	});
+	boost::unique_lock <boost::shared_mutex> lock(clientMapMutex);
+	clients.emplace(client->getID(), client);
 }
 
 ClientPtr ClientManager::getClient(IDType id)

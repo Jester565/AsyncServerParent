@@ -13,7 +13,7 @@ Links callbacks to locKeys (locKeys are contained in every packet to indicate wh
 //Forward declaration
 class PKey;
 class IPacket;
-class Server;
+class ClientManager;
 
 class PacketManager
 {
@@ -25,7 +25,7 @@ public:
 	static const bool THROW_KEY_NOT_FOUND_EXCEPTION = false;
 	
 	//Initializes PacketManager (just assigns data members to params)
-	PacketManager(Server* server);
+	PacketManager(boost::shared_ptr<ClientManager> clientManager);
 
 	//Add PKey to pKeys
 	void addPKey(PKeyPtr);
@@ -50,12 +50,12 @@ public:
 	~PacketManager();
 
 protected:
+	boost::shared_ptr<ClientManager> clientManager;
+
 	//Given the input packet, find the callback (using IPacket::locKey) and then call the callback
 	void serverProcess(boost::shared_ptr<IPacket> iPack);
 	//Stores a list of PKeys where all PKeys in the list have the same locKey but may have different callbacks
 	std::unordered_multimap<std::string, PKeyPtr> pKeys;
 	//Prevents multiple threads from accessing pKeys at the same time
 	boost::shared_mutex pKeyMutex;
-	//Gives us access to owners
-	Server* server;
 };

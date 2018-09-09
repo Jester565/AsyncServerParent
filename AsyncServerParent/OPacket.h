@@ -64,7 +64,7 @@ public:
 	}
 
 	//Clears all sendToIDs
-	void clearSendToIDs(IDType id)
+	void clearSendToIDs()
 	{
 		sendToIDs.clear();
 	}

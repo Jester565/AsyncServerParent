@@ -10,8 +10,8 @@
 #include <boost/thread.hpp>
 #include <list>
 
-PacketManager::PacketManager(Server* server)
-	:server(server)
+PacketManager::PacketManager(boost::shared_ptr<ClientManager> clientManager)
+	:clientManager(clientManager)
 {
 
 }
@@ -22,7 +22,7 @@ void PacketManager::addPKey(PKeyPtr pKey)
 	pKeys.insert(std::make_pair(pKey->getKey(), pKey));
 }
 
-void PacketManager::addPKeys(std::vector <PKeyPtr> aPKeys)
+void PacketManager::addPKeys(std::vector<PKeyPtr> aPKeys)
 {
 	for (int i = 0; i < aPKeys.size(); i++)
 		addPKey(aPKeys[i]);
@@ -60,8 +60,8 @@ void PacketManager::process(boost::shared_ptr<IPacket> iPack)
 	}
 	else
 	{
-		boost::shared_ptr<OPacket> oPack = server->createOPacket(iPack, true);
-		server->getClientManager()->send(oPack);
+		boost::shared_ptr<OPacket> oPack = iPack->toOPack(true);
+		clientManager->send(oPack);
 	}
 }
 

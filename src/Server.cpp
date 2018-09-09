@@ -2,6 +2,7 @@
 #include "PacketManager.h"
 #include "ClientManager.h"
 #include "TCPAcceptor.h"
+#include "TCPConnection.h"
 #include "IPacket.h"
 #include "OPacket.h"
 #include "Client.h"
@@ -10,28 +11,31 @@
 #include <iostream>
 
 Server::Server(const boost::asio::ip::tcp& version)
-	:ipVersion(version), cm(nullptr), servicePool(nullptr), tcpAcceptor(nullptr)
+	:ipVersion(version), clientManager(nullptr), servicePool(nullptr), tcpAcceptor(nullptr)
 {
 	
 }
 
 void Server::createManagers()
 {
-		servicePool = new ServicePool();
-		cm = new ClientManager(this);
+		servicePool = boost::make_shared<ServicePool>();
+		clientManager = boost::make_shared<ClientManager>();
+		packetManager = boost::make_shared<PacketManager>(clientManager);
 }
 
 void Server::run(uint16_t port)
 {
-	tcpAcceptor = boost::make_shared <TCPAcceptor>(this);
+	tcpAcceptor = boost::make_shared<TCPAcceptor>(servicePool, ipVersion, [&](boost::shared_ptr<boost::asio::ip::tcp::socket> socket) {
+		auto connection = createTCPConnection(socket);
+		auto client = createClient(connection, clientManager->aquireNextID());
+		clientManager->addClient(client);
+		client->init();
+		connection->start();
+	});
 	tcpAcceptor->detach(port);
 	servicePool->run();
 }
 
-HeaderManager* Server::createHeaderManager()
-{
-	return nullptr;
-}
 boost::shared_ptr<OPacket> Server::createOPacket()
 {
 	return boost::make_shared<OPacket>();
@@ -40,34 +44,33 @@ boost::shared_ptr<IPacket> Server::createIPacket()
 {
 	return boost::make_shared<IPacket>();
 }
-boost::shared_ptr<OPacket> Server::createOPacket(boost::shared_ptr<IPacket> iPack, bool copyData)
-{
-	return boost::make_shared<OPacket>(&(*iPack), copyData);
-}
 
 ClientPtr Server::createClient(boost::shared_ptr<TCPConnection> tcpConnection, IDType id)
 {
-	return boost::make_shared<Client>(tcpConnection, this, id);
+	return boost::make_shared<Client>(id, tcpConnection, packetManager);
+}
+
+boost::shared_ptr<TCPConnection> Server::createTCPConnection(boost::shared_ptr<boost::asio::ip::tcp::socket> socket)
+{
+	return boost::make_shared<TCPConnection>(socket, createHeaderManager());
 }
 
 void Server::shutdownIO()
 {
+		packetManager = nullptr;
 		if (tcpAcceptor != nullptr) {
 				tcpAcceptor->close();
 		}
-		if (cm != nullptr) {
-				cm->close();
+		if (clientManager != nullptr) {
+				clientManager->close();
 		}
 }
 
 void Server::destroyManagers()
 {
 		tcpAcceptor = nullptr;
-		if (cm != nullptr)
-		{
-				delete cm;
-				cm = nullptr;
-		}
+		clientManager = nullptr;
+		servicePool = nullptr;
 }
 
 Server::~Server()
@@ -78,9 +81,4 @@ Server::~Server()
 				std::this_thread::sleep_for(std::chrono::milliseconds(60));
 		}
 		destroyManagers();
-		if (servicePool != nullptr)
-		{
-				delete servicePool;
-				servicePool = nullptr;
-		}
 }

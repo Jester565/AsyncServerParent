@@ -14,7 +14,7 @@ class PacketManager;
 class PKeyOwner
 {
 public:
-	virtual void follow(ClientPtr client);
+	virtual void attach(boost::shared_ptr<PacketManager> packetManager);
 protected:
 	//Add a PKey to the PacketManager as well as to pKeys so that it can later be deleted upon destruction
 	virtual void addKey(PKeyPtr pKey);
@@ -29,6 +29,7 @@ protected:
 	virtual ~PKeyOwner();
 
 protected:
+	std::list<boost::shared_ptr<PacketManager>> packetManagers;
 	//Contains all of the pKeys that have been put into packetManager by the PKeyOwner so they can be easily deleted laster
-	std::list <PKeyPtr> pKeys;
+	std::list<PKeyPtr> pKeys;
 };

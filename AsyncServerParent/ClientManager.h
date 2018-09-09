@@ -27,10 +27,13 @@ public:
 	static const unsigned int MAX_CLIENTS = 65535;
 
 	//Initializes ClientManager (doesn't do anything special except assign the parameters to their corresponding data member)
-	ClientManager(Server* server);
+	ClientManager();
+
+	//Iterates through all the ids (starting at 1) and looks for the lowest availible one (maybe this could be more efficient)
+	IDType aquireNextID();
 
 	//Gets a unique id and then adds created Client obj to clients
-	virtual ClientPtr addClient(boost::shared_ptr <TCPConnection> tcpConnection);
+	virtual void addClient(ClientPtr client);
 
 	//Get client from clients map using a unique id
 	virtual ClientPtr getClient(IDType id);
@@ -83,9 +86,5 @@ public:
 protected:
 	//unordered_map allows for faster access (its Java's hashmap equivalent)
 	std::unordered_map <IDType, ClientPtr> clients;
-	//Iterates through all the ids (starting at 1) and looks for the lowest availible one (maybe this could be more efficient)
-	IDType aquireNextID();
-	//Stores the server so we can access and owners and call CreateClient()
-	Server* server;
 };
 

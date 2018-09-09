@@ -14,14 +14,21 @@ Handles sending and receiving OPackets and IPacket or raw data with a single cli
 
 //Forward declaration
 class Server;
+class IPacket;
 class OPacket;
 class HeaderManager;
+
+typedef std::function<void(boost::shared_ptr<IPacket> iPack)> DataHandler;
+typedef std::function<void()> DisconnectHandler;
 
 class TCPConnection : public boost::enable_shared_from_this<TCPConnection>
 {
 public:
 	//Initialize TCPConnection using the already existing tcpConnection
-	TCPConnection(Server* server, boost::shared_ptr<boost::asio::ip::tcp::socket> boundSocket);
+	TCPConnection(boost::shared_ptr<boost::asio::ip::tcp::socket> boundSocket,
+		boost::shared_ptr<HeaderManager> headerManager,
+		DataHandler dataHandler = nullptr,
+		DisconnectHandler disconnectHandler = nullptr);
 
 	//Starts the receiving of packets
 	virtual void start();
@@ -33,7 +40,7 @@ public:
 	virtual void send(boost::shared_ptr<std::vector<unsigned char>> sendData);
 
 	//bind function to handle receiving (must be called after receive handler is called)
-	virtual void read();
+	virtual void read(unsigned int readSize = 0);
 
 	//accessor for the socket
 	boost::shared_ptr<boost::asio::ip::tcp::socket> getSocket()
@@ -41,10 +48,12 @@ public:
 		return socket;
 	}
 
-	//The id of the client that owns this TCPConnection
-	void setSender(ClientPtr sender)
-	{
-		this->sender = sender;
+	void setDataHandler(DataHandler handler) {
+		dataHandler = handler;
+	}
+
+	void setDisconnectHandler(DisconnectHandler handler) {
+		disconnectHandler = handler;
 	}
 
 	//Function that is called when data is received
@@ -60,28 +69,25 @@ public:
 	virtual ~TCPConnection();
 
 protected:
+	DataHandler dataHandler;
+	DisconnectHandler disconnectHandler;
+
+	boost::shared_ptr<HeaderManager> headerManager;
 	//Stores data to be sent when asyncSendHandler is called
 	std::queue <boost::shared_ptr<std::vector <unsigned char>>> queueSendData;
 	//The buffer to store received packets
-	std::vector <unsigned char>* receiveStorage;
+	boost::shared_ptr<std::vector<unsigned char>> receiveStorage;
 	//The boost socket representing a connection to a single client
 	boost::shared_ptr<boost::asio::ip::tcp::socket> socket;
-	//Prevents the sending boolean from being modified by multiple threads
-	boost::mutex sendingMutex;
 	//Prevents multiple threads from accessing the queueSendData
 	boost::mutex queueSendDataMutex;
-	/*
-	True if boost::write has been called but the asyncSendHandler has not been called
-	If true, then data to be sent will be added to queueSendData so it can later be
-	sent by asyncSendHandler
-	*/
-	bool sending;
-	//Allows access to packetManager
-	Server* server;
-	//Used to serialize and deserialize the packets, allows you to have custom headers
-	HeaderManager* hm;
-	//The id of the client that owns this TCPConnection
-	ClientPtr sender;
+
 	//If false, receive will not be called again
 	bool alive;
+
+	template <typename Derived>
+	std::shared_ptr<Derived> shared_from_base()
+	{
+		return std::static_pointer_cast<Derived>(shared_from_this());
+	}
 };
